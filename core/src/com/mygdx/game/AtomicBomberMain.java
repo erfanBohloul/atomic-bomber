@@ -3,7 +3,9 @@ package com.mygdx.game;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.mygdx.game.loader.GameAssetManager;
 import com.mygdx.game.views.LoadingScreen;
+import com.mygdx.game.views.MainScreen;
 import com.mygdx.game.views.MenuScreen;
 import com.mygdx.game.views.PreferenceScreen;
 
@@ -18,6 +20,9 @@ public class AtomicBomberMain extends Game {
 
 	private LoadingScreen loadingScreen;
 	private MenuScreen menuScreen;
+	private MainScreen mainScreen;
+
+	public GameAssetManager assetManager = new GameAssetManager();
 
 	@Override
 	public void create () {
@@ -25,6 +30,10 @@ public class AtomicBomberMain extends Game {
 		setScreen(loadingScreen);
 	}
 
+	@Override
+	public void dispose() {
+		assetManager.manager.dispose();
+	}
 
 	public void changScreen(int screen) {
 		switch(screen){
@@ -36,10 +45,10 @@ public class AtomicBomberMain extends Game {
 //				if (preferencesScreen == null) preferencesScreen = new PreferencesScreen(this);
 //				this.setScreen(preferencesScreen);
 //				break;
-//			case APPLICATION:
-//				if (mainScreen == null) mainScreen = new MainScreen(this);
-//				this.setScreen(mainScreen);
-//				break;
+			case APPLICATION:
+				if (mainScreen == null) mainScreen = new MainScreen(this);
+				this.setScreen(mainScreen);
+				break;
 //			case ENDGAME:
 //				if (endScreen == null) endScreen = new EndScreen(this);
 //				this.setScreen(endScreen);
