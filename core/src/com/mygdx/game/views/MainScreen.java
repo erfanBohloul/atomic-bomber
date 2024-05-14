@@ -27,7 +27,7 @@ public class MainScreen implements Screen {
 
         controller = new KeyboardController();
         model = new GameModel(controller, parent.assetManager);
-        camera = new OrthographicCamera(32, 24);
+        camera = new OrthographicCamera(60, 50);
         debugRenderer = new Box2DDebugRenderer(true, true, true, true, true, true);
 
         parent.assetManager.queueAddImages();

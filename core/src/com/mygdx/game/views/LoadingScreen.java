@@ -18,7 +18,7 @@ public class LoadingScreen implements Screen {
 
     @Override
     public void render(float delta) {
-        parent.changScreen(AtomicBomberMain.MENU);
+        parent.changScreen(AtomicBomberMain.LOGIN);
     }
 
     @Override

@@ -4,10 +4,7 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.mygdx.game.loader.GameAssetManager;
-import com.mygdx.game.views.LoadingScreen;
-import com.mygdx.game.views.MainScreen;
-import com.mygdx.game.views.MenuScreen;
-import com.mygdx.game.views.PreferenceScreen;
+import com.mygdx.game.views.*;
 
 public class AtomicBomberMain extends Game {
 	SpriteBatch batch;
@@ -17,10 +14,12 @@ public class AtomicBomberMain extends Game {
 	public final static int APPLICATION = 2;
 	public final static int ENDGAME = 3;
 	public final static int MAIN = 4;
+	public final static int LOGIN = 5;
 
 	private LoadingScreen loadingScreen;
 	private MenuScreen menuScreen;
 	private MainScreen mainScreen;
+	private LoginScreen loginScreen;
 
 	public GameAssetManager assetManager = new GameAssetManager();
 
@@ -53,6 +52,10 @@ public class AtomicBomberMain extends Game {
 //				if (endScreen == null) endScreen = new EndScreen(this);
 //				this.setScreen(endScreen);
 //				break;
+			case LOGIN:
+				if (loginScreen == null) loginScreen = new LoginScreen(this);
+				this.setScreen(loginScreen);
+				break;
 		}
 	}
 }

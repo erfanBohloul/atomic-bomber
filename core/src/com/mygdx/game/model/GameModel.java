@@ -14,6 +14,8 @@ public class GameModel {
     private KeyboardController controller;
     private GameAssetManager assetManager;
 
+    private final float GRAVITY_EARTH = -9.8f;
+
     private Body floor;
     public Body player;
 
@@ -28,7 +30,7 @@ public class GameModel {
 
         BodyFactory bodyFactory = BodyFactory.getInstance(world);
         player = bodyFactory.makeBoxPolyBody(
-          1, 1, 2,2,BodyFactory.RUBBER, BodyDef.BodyType.DynamicBody, false
+          1, 1, 2,2,BodyFactory.GOLD, BodyDef.BodyType.DynamicBody, false
         );
     }
 
@@ -37,7 +39,7 @@ public class GameModel {
             player.applyForceToCenter(0, -10, true);
         }
         else if (controller.up) {
-            player.applyForceToCenter(0, 10, true);
+            player.applyForceToCenter(0, 30, true);
         }
 
         else if (controller.left) {
@@ -48,18 +50,36 @@ public class GameModel {
             player.applyForceToCenter(10, 0, true);
         }
 
+        // applying drag force
+        float H = 0.5f;
+        Vector2 velocity = player.getLinearVelocity();
+        float vsqur = velocity.x * velocity.x + velocity.y * velocity.y;
+        float fmag = H * vsqur;
+
+        Vector2 fd = velocity.nor().scl(-fmag);
+        player.applyForceToCenter(fd, true);
+
+
+//        Vector2 gravity = new Vector2(0, GRAVITY_EARTH);
+//        player.applyForceToCenter(gravity, true);
+
         world.step(delta, 6, 2);
     }
 
     public void createFloor() {
         BodyDef bodyDef = new BodyDef();
         bodyDef.type = BodyDef.BodyType.StaticBody;
-        bodyDef.position.set(camera.position.x, camera.position.y);
+        bodyDef.position.set(0, 0);
         floor = world.createBody(bodyDef);
 
         PolygonShape shape = new PolygonShape();
-        shape.setAsBox(50, 1);
-        floor.createFixture(shape, 0.0f);
+        shape.setAsBox(50, .9f);
+        FixtureDef fixtureDef = new FixtureDef();
+        fixtureDef.shape = shape;
+        fixtureDef.density = 0f;
+        fixtureDef.friction = 0f;
+        fixtureDef.restitution = .5f;
+        floor.createFixture(fixtureDef);
 
         shape.dispose();
     }
