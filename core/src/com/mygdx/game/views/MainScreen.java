@@ -37,6 +37,7 @@ public class MainScreen implements Screen {
 
         batch = new SpriteBatch();
         batch.setProjectionMatrix(camera.combined);
+
     }
 
     @Override

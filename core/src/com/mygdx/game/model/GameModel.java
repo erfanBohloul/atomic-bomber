@@ -1,6 +1,9 @@
 package com.mygdx.game.model;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
 import com.mygdx.game.controller.KeyboardController;
@@ -21,7 +24,8 @@ public class GameModel {
 
     private final float GRAVITY_EARTH = -9.8f;
 
-    private Body floor;
+    private Body floor,
+            ceil;
     public Player player;
     private ArrayList<Bomb> bombs;
     private BodyFactory bodyFactory;
@@ -38,6 +42,7 @@ public class GameModel {
         bombs = new ArrayList<>();
 
         createFloor();
+        createCeil();
         createPlayer();
     }
 
@@ -97,7 +102,6 @@ public class GameModel {
             return;
 
         player.reload();
-
         Bomb newBomb = new Bomb(player.getPosition().x, player.getPosition().y);
         bombs.add(newBomb);
     }
@@ -105,17 +109,37 @@ public class GameModel {
     public void createFloor() {
         BodyDef bodyDef = new BodyDef();
         bodyDef.type = BodyDef.BodyType.StaticBody;
-        bodyDef.position.set(0, 0);
+        bodyDef.position.set(0, -25); // set the position to the center of the screen on the x-axis and 0 on the y-axis
         floor = world.createBody(bodyDef);
         floor.setUserData("FLOOR");
 
         PolygonShape shape = new PolygonShape();
-        shape.setAsBox(50, .9f);
+        shape.setAsBox(Gdx.graphics.getWidth() / 2f, 5); // set the box dimensions to half of the screen width and 0.5 on the y-axis
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;
         fixtureDef.density = 0f;
         fixtureDef.friction = 0f;
         floor.createFixture(fixtureDef);
+
+
+        shape.dispose();
+    }
+
+    public void createCeil() {
+        BodyDef bodyDef = new BodyDef();
+        bodyDef.type = BodyDef.BodyType.StaticBody;
+        bodyDef.position.set(0, 25); // set the position to the center of the screen on the x-axis and 0 on the y-axis
+        ceil = world.createBody(bodyDef);
+        ceil.setUserData("CEIL");
+
+        PolygonShape shape = new PolygonShape();
+        shape.setAsBox(Gdx.graphics.getWidth() / 2f, 1); // set the box dimensions to half of the screen width and 0.5 on the y-axis
+        FixtureDef fixtureDef = new FixtureDef();
+        fixtureDef.shape = shape;
+        fixtureDef.density = 0f;
+        fixtureDef.friction = 0f;
+        ceil.createFixture(fixtureDef);
+
 
         shape.dispose();
     }
