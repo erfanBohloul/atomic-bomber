@@ -5,6 +5,10 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
 import com.mygdx.game.controller.KeyboardController;
 import com.mygdx.game.loader.GameAssetManager;
+import com.mygdx.game.model.entity.Bomb;
+import com.mygdx.game.model.entity.Player;
+
+import java.util.ArrayList;
 
 public class GameModel {
 
@@ -13,57 +17,89 @@ public class GameModel {
     private OrthographicCamera camera;
     private KeyboardController controller;
     private GameAssetManager assetManager;
+    private int reloadingCounter = 0;
 
     private final float GRAVITY_EARTH = -9.8f;
 
     private Body floor;
-    public Body player;
+    public Player player;
+    private ArrayList<Bomb> bombs;
+    private BodyFactory bodyFactory;
+    public ArrayList<Body> toBeRemoved = new ArrayList<>();
 
     public GameModel(KeyboardController keyboardController, GameAssetManager assetManager) {
-        world = new World(new Vector2(0, 0), true);
+        world = new World(new Vector2(0, -3), true);
+        world.setContactListener(new GameContactListener(this));
         debugRenderer = new Box2DDebugRenderer();
         camera = new OrthographicCamera();
         this.controller = keyboardController;
         this.assetManager = assetManager;
+        bodyFactory = BodyFactory.getInstance(world);
+        bombs = new ArrayList<>();
 
         createFloor();
+        createPlayer();
+    }
 
-        BodyFactory bodyFactory = BodyFactory.getInstance(world);
-        player = bodyFactory.makeBoxPolyBody(
-          1, 1, 2,2,BodyFactory.GOLD, BodyDef.BodyType.DynamicBody, false
-        );
+    public void createPlayer() {
+        player = new Player();
     }
 
     public void logicStep(float delta) {
+
+        // removing
+        for (Body body: toBeRemoved) {
+            world.destroyBody(body);
+        }
+        toBeRemoved.clear();
+
+
         if (controller.down) {
-            player.applyForceToCenter(0, -10, true);
+            player.body.applyForceToCenter(0, -10, true);
         }
         else if (controller.up) {
-            player.applyForceToCenter(0, 30, true);
+            player.body.applyForceToCenter(0, 30, true);
         }
-
         else if (controller.left) {
-            player.applyForceToCenter(-10, 0, true);
+            player.body.applyForceToCenter(-10, 0, true);
         }
-
         else if (controller.right) {
-            player.applyForceToCenter(10, 0, true);
+            player.body.applyForceToCenter(10, 0, true);
+        }
+        if (controller.bomb) {
+            dropBomb();
         }
 
         // applying drag force
-        float H = 0.5f;
-        Vector2 velocity = player.getLinearVelocity();
-        float vsqur = velocity.x * velocity.x + velocity.y * velocity.y;
-        float fmag = H * vsqur;
+        applyDragForce(player.body);
 
-        Vector2 fd = velocity.nor().scl(-fmag);
-        player.applyForceToCenter(fd, true);
-
-
-//        Vector2 gravity = new Vector2(0, GRAVITY_EARTH);
-//        player.applyForceToCenter(gravity, true);
+        // player
+        player.decreaseReloadTimer();
 
         world.step(delta, 6, 2);
+    }
+
+    private static void applyDragForce(Body body) {
+        Vector2 v = body.getLinearVelocity();
+        float dragForce = getDragForce(v);
+        body.applyForceToCenter(v.nor().scl(dragForce), true);
+    }
+
+    private static float getDragForce(Vector2 v) {
+        float H = 0.5f;
+        float vsqur = v.x * v.x + v.y * v.y;
+        float fmag = H * vsqur;
+        return -fmag;
+    }
+
+    private void dropBomb() {
+        if ( !player.readyForBombing() )
+            return;
+
+        player.reload();
+
+        Bomb newBomb = new Bomb(player.getPosition().x, player.getPosition().y);
+        bombs.add(newBomb);
     }
 
     public void createFloor() {
@@ -71,6 +107,7 @@ public class GameModel {
         bodyDef.type = BodyDef.BodyType.StaticBody;
         bodyDef.position.set(0, 0);
         floor = world.createBody(bodyDef);
+        floor.setUserData("FLOOR");
 
         PolygonShape shape = new PolygonShape();
         shape.setAsBox(50, .9f);
@@ -78,7 +115,6 @@ public class GameModel {
         fixtureDef.shape = shape;
         fixtureDef.density = 0f;
         fixtureDef.friction = 0f;
-        fixtureDef.restitution = .5f;
         floor.createFixture(fixtureDef);
 
         shape.dispose();

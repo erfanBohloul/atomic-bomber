@@ -26,6 +26,10 @@ public class BodyFactory {
         return thisInstance;
     }
 
+    public static BodyFactory getInstance(){
+        return thisInstance;
+    }
+
     public static FixtureDef makeFixture(int material, Shape shape){
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;
@@ -109,6 +113,10 @@ public class BodyFactory {
         poly.dispose();
 
         return boxBody;
+    }
+
+    public Body makeBoxPolyBody(float posx, float posy, float width, float height, BodyDef.BodyType bodyType, boolean fixedRotation){
+        return makeBoxPolyBody(posx, posy, width, height, GOLD, bodyType, fixedRotation);
     }
 
     public Body makePolygonShapeBody(Vector2[] vertices, float posx, float posy, int material, BodyDef.BodyType bodyType){

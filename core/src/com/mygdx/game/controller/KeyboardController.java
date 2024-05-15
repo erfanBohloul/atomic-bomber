@@ -5,7 +5,7 @@ import com.badlogic.gdx.InputProcessor;
 
 public class KeyboardController implements InputProcessor {
 
-    public boolean down, up, left, right;
+    public boolean down, up, left, right, bomb;
 
     @Override
     public boolean keyDown(int keycode) {
@@ -25,6 +25,10 @@ public class KeyboardController implements InputProcessor {
                 break;
             case Input.Keys.RIGHT:
                 right = true;
+                keyProcessed = true;
+                break;
+            case Input.Keys.F:
+                bomb = true;
                 keyProcessed = true;
                 break;
         }
@@ -52,6 +56,11 @@ public class KeyboardController implements InputProcessor {
             case Input.Keys.DOWN:
                 down = false;
                 keyProcessed = true;
+                break;
+            case Input.Keys.F:
+                bomb = false;
+                keyProcessed = true;
+                break;
         }
         return keyProcessed;
     }
