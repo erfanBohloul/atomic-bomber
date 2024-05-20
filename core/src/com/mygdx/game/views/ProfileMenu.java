@@ -1,19 +1,8 @@
 package com.mygdx.game.views;
 
 import com.badlogic.gdx.Screen;
-import com.mygdx.game.AtomicBomberMain;
-import com.mygdx.game.model.account.User;
 
-import static com.mygdx.game.controller.AccountController.addUser;
-
-public class LoadingScreen implements Screen {
-
-    AtomicBomberMain parent;
-
-    public LoadingScreen(AtomicBomberMain parent) {
-        this.parent = parent;
-    }
-
+public class ProfileMenu implements Screen {
     @Override
     public void show() {
 
@@ -21,8 +10,7 @@ public class LoadingScreen implements Screen {
 
     @Override
     public void render(float delta) {
-        addUser(new User("a", "a"));
-        parent.changScreen(AtomicBomberMain.LOGIN);
+
     }
 
     @Override

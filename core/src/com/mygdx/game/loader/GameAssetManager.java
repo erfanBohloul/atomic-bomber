@@ -9,13 +9,18 @@ public class GameAssetManager {
 
     public final AssetManager manager = new AssetManager();
 
-    public final String playerImage = "images/img.png";
+    public final String playerImage = "images/img.png",
+        floorImage = "images/floor.jpg",
+        tankImage = "images/tank.png";
 
     public final String skin = "skin/glassy-ui.json";
 
     public void queueAddImages(){
         manager.load(playerImage, Texture.class);
+        manager.load(floorImage, Texture.class);
+        manager.load(tankImage, Texture.class);
     }
+
 
     public void queueAddSkin() {
         SkinParameter params = new SkinParameter("skin/glassy-ui.atlas");

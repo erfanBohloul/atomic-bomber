@@ -2,10 +2,11 @@ package com.mygdx.game.controller;
 
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
+import com.badlogic.gdx.Gdx;
 
 public class KeyboardController implements InputProcessor {
 
-    public boolean down, up, left, right, bomb;
+    public boolean down, up, left, right, bomb, T, leftBracket, rightBracket;
 
     @Override
     public boolean keyDown(int keycode) {
@@ -31,6 +32,21 @@ public class KeyboardController implements InputProcessor {
                 bomb = true;
                 keyProcessed = true;
                 break;
+            case Input.Keys.T:
+                T = true;
+                keyProcessed = true;
+                break;
+
+            case Input.Keys.LEFT_BRACKET:
+                leftBracket = true;
+                keyProcessed = true;
+                break;
+
+            case Input.Keys.RIGHT_BRACKET:
+                rightBracket = true;
+                keyProcessed = true;
+                break;
+
         }
 
         return keyProcessed;
@@ -59,6 +75,20 @@ public class KeyboardController implements InputProcessor {
                 break;
             case Input.Keys.F:
                 bomb = false;
+                keyProcessed = true;
+                break;
+            case Input.Keys.T:
+                T = false;
+                keyProcessed = true;
+                break;
+
+            case Input.Keys.LEFT_BRACKET:
+                leftBracket = false;
+                keyProcessed = true;
+                break;
+
+            case Input.Keys.RIGHT_BRACKET:
+                rightBracket = false;
                 keyProcessed = true;
                 break;
         }

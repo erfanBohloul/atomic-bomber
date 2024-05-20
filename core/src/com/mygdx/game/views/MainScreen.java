@@ -5,11 +5,20 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.mygdx.game.AtomicBomberMain;
 import com.mygdx.game.controller.KeyboardController;
 import com.mygdx.game.model.GameModel;
+import com.mygdx.game.model.entity.Player;
+import com.mygdx.game.model.entity.Tank;
 
 public class MainScreen implements Screen {
 
@@ -20,29 +29,55 @@ public class MainScreen implements Screen {
     private Box2DDebugRenderer debugRenderer;
     private SpriteBatch batch;
 
-    private Texture playerTexture;
+    public static final int WIDTH = 240,
+                    HEIGHT = 360;
+
+    private Texture playerTexture,
+        floorTexture,
+        tankTexture;
+
+    public Label score;
+
+    private Skin skin;
+//    private Stage stage;
 
     public MainScreen(AtomicBomberMain parent) {
         this.parent = parent;
 
-        controller = new KeyboardController();
-        model = new GameModel(controller, parent.assetManager);
-        camera = new OrthographicCamera(60, 50);
-        debugRenderer = new Box2DDebugRenderer(true, true, true, true, true, true);
 
+        controller = new KeyboardController();
+        camera = new OrthographicCamera(WIDTH, HEIGHT);
+        debugRenderer = new Box2DDebugRenderer(true, true, true, true, true, true);
+        model = new GameModel(this, controller, parent.assetManager);
+
+        // images
         parent.assetManager.queueAddImages();
         parent.assetManager.manager.finishLoading();
 
         playerTexture = parent.assetManager.manager.get("images/img.png");
+        model.player.setTexture(playerTexture);
+        floorTexture = parent.assetManager.manager.get("images/floor.jpg");
+        tankTexture = parent.assetManager.manager.get("images/tank.png");
+
+        // skin
+        skin = parent.assetManager.manager.get("skin/glassy-ui.json");
+
+
+        String text = "score: 0";
+
+        score = new Label(text, skin);
+        score.setPosition(-WIDTH/2f + 30 , HEIGHT / 2f - 100);
+        score.setSize(30, 30);
 
         batch = new SpriteBatch();
         batch.setProjectionMatrix(camera.combined);
-
     }
 
     @Override
     public void show() {
         Gdx.input.setInputProcessor(controller);
+
+
     }
 
     @Override
@@ -54,7 +89,15 @@ public class MainScreen implements Screen {
         debugRenderer.render(model.world, camera.combined);
 
         batch.begin();
-        batch.draw(playerTexture, model.player.getPosition().x-1, model.player.getPosition().y-1, 2, 2);
+        model.player.getSprite().draw(batch);
+        batch.draw(floorTexture, -WIDTH/2f, model.floor.getPosition().y, Gdx.graphics.getWidth(), GameModel.floorHeight);
+
+        for (Tank tank : model.tanks) {
+            batch.draw(tankTexture, tank.body.getPosition().x-7f, tank.body.getPosition().y-5f, 14, 10);
+        }
+
+        score.draw(batch, 1);
+
         batch.end();
     }
 
@@ -80,6 +123,5 @@ public class MainScreen implements Screen {
 
     @Override
     public void dispose() {
-
     }
 }
