@@ -17,7 +17,7 @@ public class TankBullet extends Damager {
             throw new RuntimeException("BodyFactory is null");
         }
 
-        body = bodyFactory.makeBoxPolyBody(posx, posy, WIDTH, HEIGHT, BodyDef.BodyType.DynamicBody, false);
+        body = bodyFactory.makeBoxPolyBody(posx, posy, WIDTH, HEIGHT, BodyDef.BodyType.KinematicBody, false);
         body.setUserData(this);
 
         velocity = target.sub(body.getPosition()).scl(10);

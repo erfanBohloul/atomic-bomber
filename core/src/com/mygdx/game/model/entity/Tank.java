@@ -28,7 +28,7 @@ public class Tank {
             throw new AssertionError();
         }
 
-        body = bodyFactory.makeBoxPolyBody(posx, posy, WIDTH, HEIGHT, BodyDef.BodyType.KinematicBody, false);
+        body = bodyFactory.makeBoxPolyBody(posx, posy, WIDTH, HEIGHT, BodyDef.BodyType.KinematicBody, true);
         body.setUserData(this);
 
         health = 2;
@@ -54,10 +54,12 @@ public class Tank {
     }
 
     public void takeDamage(float damage) {
+        System.out.println("health: " + health);
         health -= damage;
 
         if (health <= 0) {
             GameModel.curr.toBeRemoved.add(body);
+            GameModel.curr.calculateBodyScore(body);
         }
     }
 
@@ -72,7 +74,10 @@ public class Tank {
 
     public TankBullet shootBullet(Vector2 direction) {
         reloadTimer = RELOAD_TIME;
-        System.out.println(direction);
         return new TankBullet(getPosition().x, getPosition().y + Tank.HEIGHT, direction);
+    }
+
+    public static float getArea() {
+        return WIDTH * HEIGHT;
     }
 }

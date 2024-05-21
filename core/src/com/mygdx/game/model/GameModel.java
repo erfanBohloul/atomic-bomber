@@ -4,19 +4,18 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
-import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.StringBuilder;
 import com.mygdx.game.controller.KeyboardController;
 import com.mygdx.game.loader.GameAssetManager;
 import com.mygdx.game.model.entity.damager.Bomb;
 import com.mygdx.game.model.entity.Player;
 import com.mygdx.game.model.entity.Tank;
+import com.mygdx.game.model.entity.damager.Damager;
 import com.mygdx.game.model.entity.damager.TankBullet;
 import com.mygdx.game.views.MainScreen;
-import jdk.tools.jmod.Main;
 
 import java.util.ArrayList;
 import java.util.Random;
@@ -36,11 +35,10 @@ public class GameModel {
 
 
     public Player player;
-    private ArrayList<Bomb> bombs;
     private BodyFactory bodyFactory;
     public ArrayList<Body> toBeRemoved = new ArrayList<>();
     public ArrayList<Tank> tanks = new ArrayList<>();
-    public ArrayList<TankBullet> tankBullets = new ArrayList<>();
+    public ArrayList<Damager> bullets = new ArrayList<>();
     private Music boingMusic;
 
     private MainScreen parent;
@@ -57,16 +55,12 @@ public class GameModel {
         this.controller = keyboardController;
         this.assetManager = assetManager;
         bodyFactory = BodyFactory.getInstance(world);
-        bombs = new ArrayList<>();
-
         boingMusic = Gdx.audio.newMusic(Gdx.files.internal("music/boing.mp3"));
 
         createFloor();
         createCeil();
         createPlayer();
         createTank();
-
-
     }
 
     public void createPlayer() {
@@ -76,16 +70,8 @@ public class GameModel {
     public void logicStep(float delta) {
 
         // removing
-        for (Body body : toBeRemoved) {
-            calculateBodyScore(body);
-
-            removeObjFromData(body.getUserData());
-        }
-
-        for (Body body: toBeRemoved) {
-            world.destroyBody(body);
-        }
-        toBeRemoved.clear();
+        handleObjectsOutOfBound();
+        removeObjects();
 
 
         if (controller.down) {
@@ -104,10 +90,12 @@ public class GameModel {
             dropBomb();
         }
 
-//        else if (controller.leftBracket) {
-//            player.body.set
-//        }
-
+        if (controller.leftBracket) {
+            player.body.setTransform(player.getPosition(), player.body.getAngle() + (float) DEGREES_TO_RADIANS * 1);
+        }
+        else if (controller.rightBracket) {
+            player.body.setTransform(player.getPosition(), player.body.getAngle() + (float) DEGREES_TO_RADIANS * (-1f));
+        }
         if (Gdx.input.isKeyJustPressed(Input.Keys.T)) {
             createTank();
         }
@@ -115,39 +103,65 @@ public class GameModel {
 
 
 
-
         // shoot to player
         tanksShootPlayer();
-        for (TankBullet bullet : tankBullets) {
-//            System.out.println(bullet.velocity);
-//            bullet.body.setLinearVelocity(bullet.velocity);
-//            bullet.body.applyForceToCenter(bullet.velocity, true);
-//            bullet.body.applyForceToCenter(0, TankBullet.getArea() * 10, true);
-        }
 
 
         // applying drag force
-        applyDragForce(player.body);
+//        applyDragForce(player.body);
 
 
         // player
+        player.body.setLinearVelocity(MathUtils.cos(player.body.getAngle()) * 10, MathUtils.sin(player.body.getAngle()) * 10);
+
         player.body.applyForceToCenter(new Vector2(0, player.getArea() * 10), true);
         player.decreaseReloadTimer();
 //        System.out.println(player.getPosition().x + " " + player.getPosition().y);
         if (player.getPosition().x >= MainScreen.WIDTH/2f) {
             player.body.setTransform(-MainScreen.WIDTH/2f, player.getPosition().y, 0);
         }
-
         else if (player.getPosition().x <= -MainScreen.WIDTH/2f) {
             player.body.setTransform(MainScreen.WIDTH/2f, player.getPosition().y, 0);
         }
 
         // bombs
+        for (Damager damager : bullets) {
+            damager.body.applyForceToCenter(0, -10, true);
+        }
 
         world.step(delta, 6, 2);
     }
 
-    private void calculateBodyScore(Body body) {
+    private void removeObjects() {
+        for (Body body : toBeRemoved) {
+            removeObjFromData(body.getUserData());
+        }
+
+        for (Body body: toBeRemoved) {
+            world.destroyBody(body);
+        }
+        toBeRemoved.clear();
+    }
+
+    private void handleObjectsOutOfBound() {
+        for (Tank tank : tanks) {
+            if (tank.getPosition().x > MainScreen.WIDTH/2f || tank.getPosition().x < -MainScreen.WIDTH/2f) {
+                toBeRemoved.add(tank.body);
+            }
+        }
+
+        for (Damager damager : bullets) {
+            if (damager.getPosition().x > MainScreen.WIDTH/2f || damager.getPosition().x < -MainScreen.WIDTH/2f) {
+                toBeRemoved.add(damager.body);
+            }
+
+            else if (damager.getPosition().y > MainScreen.HEIGHT/2f || damager.getPosition().y < -MainScreen.HEIGHT/2f) {
+                toBeRemoved.add(damager.body);
+            }
+        }
+    }
+
+    public void calculateBodyScore(Body body) {
         StringBuilder scoreText = parent.score.getText();
 
         int score = 0;
@@ -175,7 +189,7 @@ public class GameModel {
 
             TankBullet tankBullet = tank.shootBullet(player.getPosition());
             tankBullet.body.setLinearVelocity(tankBullet.velocity);
-            tankBullets.add(tankBullet);
+            bullets.add(tankBullet);
         }
     }
 
@@ -183,8 +197,8 @@ public class GameModel {
         if (object instanceof Tank)
             tanks.remove((Tank) object);
 
-        else if (object instanceof Bomb)
-            bombs.remove((Bomb) object);
+        else if (object instanceof Damager)
+            bullets.remove((Damager) object);
     }
 
     private static void applyDragForce(Body body) {
@@ -204,8 +218,8 @@ public class GameModel {
         if ( !player.readyForBombing() )
             return;
 
-        Bomb newBomb = new Bomb(player.getPosition().x, player.getPosition().y - Player.HEIGHT);
-        bombs.add(newBomb);
+        Bomb newBomb = new Bomb(player.body);
+        bullets.add(newBomb);
 
         player.reload();
     }

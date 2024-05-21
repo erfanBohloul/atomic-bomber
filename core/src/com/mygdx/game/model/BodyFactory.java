@@ -93,11 +93,11 @@ public class BodyFactory {
         return makeCirclePolyBody( posx,  posy,  radius,  material,  BodyDef.BodyType.DynamicBody,  false);
     }
 
-    public Body makeBoxPolyBody(float posx, float posy, float width, float height,int material, BodyDef.BodyType bodyType){
-        return makeBoxPolyBody(posx, posy, width, height, material, bodyType, false);
+    public Body makeSensorBoxPolyBody(float posx, float posy, float width, float height, BodyDef.BodyType bodyType, boolean isSensor){
+        return makeBoxPolyBody(posx, posy, width, height, GOLD, bodyType, false, isSensor);
     }
 
-    public Body makeBoxPolyBody(float posx, float posy, float width, float height, int material, BodyDef.BodyType bodyType, boolean fixedRotation){
+    public Body makeBoxPolyBody(float posx, float posy, float width, float height, int material, BodyDef.BodyType bodyType, boolean fixedRotation, boolean isSensor){
         // create a definition
         BodyDef boxBodyDef = new BodyDef();
         boxBodyDef.type = bodyType;
@@ -109,14 +109,18 @@ public class BodyFactory {
         Body boxBody = world.createBody(boxBodyDef);
         PolygonShape poly = new PolygonShape();
         poly.setAsBox(width/2, height/2);
-        boxBody.createFixture(makeFixture(material,poly));
+
+        FixtureDef fixtureDef = makeFixture(material,poly);
+        fixtureDef.isSensor = isSensor;
+        boxBody.createFixture(fixtureDef);
+
         poly.dispose();
 
         return boxBody;
     }
 
     public Body makeBoxPolyBody(float posx, float posy, float width, float height, BodyDef.BodyType bodyType, boolean fixedRotation){
-        return makeBoxPolyBody(posx, posy, width, height, GOLD, bodyType, fixedRotation);
+        return makeBoxPolyBody(posx, posy, width, height, GOLD, bodyType, fixedRotation, false);
     }
 
     public Body makePolygonShapeBody(Vector2[] vertices, float posx, float posy, int material, BodyDef.BodyType bodyType){

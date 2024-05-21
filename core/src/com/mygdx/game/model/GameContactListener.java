@@ -28,12 +28,30 @@ public class GameContactListener implements ContactListener {
             return;
         }
 
-        System.out.println("Contact: " + bodyA.getUserData() + " " + bodyB.getUserData());
+        System.out.println("Contact: " + bodyA.getUserData().getClass().getSimpleName() + " " + bodyB.getUserData().getClass().getSimpleName());
 
+        floorTank(bodyA, bodyB);
         damagerFloor(bodyA, bodyB);
-        bombTank(bodyA, bodyB);
+        damagerTank(bodyA, bodyB);
         damagerPlayer(bodyB, bodyA);
 
+    }
+
+    private void floorTank(Body bodyA, Body bodyB) {
+        if (bodyA.getUserData() instanceof Tank) {
+            if (bodyB.getUserData().equals("Floor")) {
+                Tank tank = (Tank) bodyA.getUserData();
+                tank.body.applyForceToCenter(0, Tank.getArea() * 10, true);
+            }
+        }
+
+
+        if (bodyB.getUserData() instanceof Tank) {
+            if (bodyA.getUserData().equals("Floor")) {
+                Tank tank = (Tank) bodyB.getUserData();
+                tank.body.applyForceToCenter(0, Tank.getArea() * 10, true);
+            }
+        }
     }
 
     private void damagerPlayer(Body bodyA, Body bodyB) {
@@ -59,9 +77,9 @@ public class GameContactListener implements ContactListener {
         }
     }
 
-    private void bombTank (Body bodyA, Body bodyB) {
+    private void damagerTank (Body bodyA, Body bodyB) {
         if (bodyA.getUserData() instanceof Tank) {
-            if (bodyB.getUserData() instanceof Bomb) {
+            if (bodyB.getUserData() instanceof Damager) {
                 parent.toBeRemoved.add(bodyB);
 
                 Tank tank = (Tank) bodyA.getUserData();
@@ -71,7 +89,7 @@ public class GameContactListener implements ContactListener {
         }
 
         else if (bodyB.getUserData() instanceof Tank) {
-            if (bodyA.getUserData() instanceof Bomb) {
+            if (bodyA.getUserData() instanceof Damager) {
                 parent.toBeRemoved.add(bodyA);
 
 
@@ -110,4 +128,5 @@ public class GameContactListener implements ContactListener {
     public void postSolve(Contact contact, ContactImpulse impulse) {
 
     }
+
 }
