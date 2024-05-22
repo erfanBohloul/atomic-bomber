@@ -4,17 +4,16 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.TextureData;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
-import com.badlogic.gdx.utils.StringBuilder;
 import com.mygdx.game.controller.KeyboardController;
 import com.mygdx.game.loader.GameAssetManager;
-import com.mygdx.game.model.entity.damager.Bomb;
+import com.mygdx.game.model.entity.damager.*;
 import com.mygdx.game.model.entity.Player;
-import com.mygdx.game.model.entity.Tank;
-import com.mygdx.game.model.entity.damager.Damager;
-import com.mygdx.game.model.entity.damager.TankBullet;
+import com.mygdx.game.model.entity.enemies.Enemy;
+import com.mygdx.game.model.entity.enemies.Tank;
 import com.mygdx.game.views.MainScreen;
 
 import java.util.ArrayList;
@@ -26,7 +25,7 @@ public class GameModel {
     private Box2DDebugRenderer debugRenderer;
     private OrthographicCamera camera;
     private KeyboardController controller;
-    private GameAssetManager assetManager;
+    public GameAssetManager assetManager;
     private static final double DEGREES_TO_RADIANS = (double)(Math.PI/180);
 
     public Body floor,
@@ -37,11 +36,21 @@ public class GameModel {
     public Player player;
     private BodyFactory bodyFactory;
     public ArrayList<Body> toBeRemoved = new ArrayList<>();
-    public ArrayList<Tank> tanks = new ArrayList<>();
-    public ArrayList<Damager> bullets = new ArrayList<>();
+    public ArrayList<Body> toBeAdded = new ArrayList<>();
+    public ArrayList<Body> entities = new ArrayList<>();
     private Music boingMusic;
-
     private MainScreen parent;
+
+    // game meta data:
+    private int numKills,
+            numCluster,
+            numAtomic;
+
+    private float frozenProgress;
+    private boolean freezeStatus = false;
+    private final double freezeTime = 3;
+
+    private double timer = 0;
 
     public static GameModel curr;
 
@@ -61,6 +70,20 @@ public class GameModel {
         createCeil();
         createPlayer();
         createTank();
+
+        frozenProgress = 0; //default
+    }
+
+    public void toggleFreezeStatus() {
+        freezeStatus = !freezeStatus;
+    }
+
+    public void setFreezeStatus(boolean freezeStatus) {
+        this.freezeStatus = freezeStatus;
+    }
+
+    public boolean getFreezeStatus() {
+        return freezeStatus;
     }
 
     public void createPlayer() {
@@ -68,41 +91,23 @@ public class GameModel {
     }
 
     public void logicStep(float delta) {
-
         // removing
         handleObjectsOutOfBound();
         removeObjects();
+        // adding
+        addObjects();
 
+        // handle frozen state
+        if (freezeStatus) {
+            timer += delta;
 
-        if (controller.down) {
-            player.body.applyForceToCenter(0, -500, true);
-        }
-        else if (controller.up) {
-            player.body.applyForceToCenter(0, 500, true);
-        }
-        else if (controller.left) {
-            player.body.applyForceToCenter(-500, 0, true);
-        }
-        else if (controller.right) {
-            player.body.applyForceToCenter(500, 0, true);
-        }
-        else if (controller.bomb) {
-            dropBomb();
+            if (timer >= freezeTime) {
+                timer = 0;
+                unFreezeAction();
+            }
         }
 
-        if (controller.leftBracket) {
-            player.body.setTransform(player.getPosition(), player.body.getAngle() + (float) DEGREES_TO_RADIANS * 1);
-        }
-        else if (controller.rightBracket) {
-            player.body.setTransform(player.getPosition(), player.body.getAngle() + (float) DEGREES_TO_RADIANS * (-1f));
-        }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.T)) {
-            createTank();
-        }
-
-
-
-
+        handleInputs();
         // shoot to player
         tanksShootPlayer();
 
@@ -116,7 +121,6 @@ public class GameModel {
 
         player.body.applyForceToCenter(new Vector2(0, player.getArea() * 10), true);
         player.decreaseReloadTimer();
-//        System.out.println(player.getPosition().x + " " + player.getPosition().y);
         if (player.getPosition().x >= MainScreen.WIDTH/2f) {
             player.body.setTransform(-MainScreen.WIDTH/2f, player.getPosition().y, 0);
         }
@@ -125,61 +129,135 @@ public class GameModel {
         }
 
         // bombs
-        for (Damager damager : bullets) {
-            damager.body.applyForceToCenter(0, -10, true);
-        }
-
         world.step(delta, 6, 2);
     }
 
-    private void removeObjects() {
-        for (Body body : toBeRemoved) {
-            removeObjFromData(body.getUserData());
+    private void handleInputs() {
+        if (controller.bomb) {
+            dropBomb();
+        }
+        else if (Gdx.input.isKeyJustPressed(Input.Keys.C)) {
+            dropCluster();
+        }
+        else if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+            dropAtomic();
         }
 
+        else if (Gdx.input.isKeyJustPressed(Input.Keys.TAB)) {
+            freezeAction();
+        }
+
+        if (controller.leftBracket) {
+            player.body.setTransform(player.getPosition(), player.body.getAngle() + (float) DEGREES_TO_RADIANS * 2);
+        }
+        else if (controller.rightBracket) {
+            player.body.setTransform(player.getPosition(), player.body.getAngle() + (float) DEGREES_TO_RADIANS * (-2f));
+        }
+
+        if (controller.accelerate) {
+            player.accelerate();
+        }
+
+        // cheat codes
+        if (Gdx.input.isKeyJustPressed(Input.Keys.T)) {
+            createTank();
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.EQUALS)) {
+            numCluster++;
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.MINUS)) {
+            numAtomic++;
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.Z)) {
+            frozenProgress = Math.min(frozenProgress + 0.05f, 1f);
+        }
+
+    }
+
+    private void unFreezeAction() {
+        setFreezeStatus(false);
+
+        ArrayList<Enemy> enemies = getEnemies();
+        for (Enemy enemy : enemies) {
+            enemy.move();
+        }
+    }
+
+    private void freezeAction() {
+        if (!canFreeze()) {
+            return;
+        }
+
+        frozenProgress = 0f;
+        setFreezeStatus(true);
+
+        // remove all enemy damagers
+        ArrayList<Damager> damagers = getDamagers();
+        for (Damager damager : damagers) {
+            if (damager instanceof TankBullet)
+                toBeRemoved.add(damager.body);
+        }
+
+
+        // set velocity of enemies to zero
+        ArrayList<Enemy> enemies = getEnemies();
+        for (Enemy enemy : enemies) {
+            enemy.stop();
+        }
+    }
+
+    public ArrayList<Enemy> getEnemies() {
+        ArrayList<Enemy> enemies = new ArrayList<>();
+
+        for (Body body : entities) {
+            if (body.getUserData() instanceof Enemy)
+                enemies.add((Enemy) body.getUserData());
+        }
+
+        return enemies;
+    }
+
+    private boolean canFreeze() {
+        return frozenProgress >= 1f && !getFreezeStatus();
+    }
+
+    private void addObjects() {
+        entities.addAll(toBeAdded);
+        toBeAdded.clear();
+    }
+
+    private void removeObjects() {
         for (Body body: toBeRemoved) {
+            entities.remove(body);
             world.destroyBody(body);
         }
         toBeRemoved.clear();
     }
 
     private void handleObjectsOutOfBound() {
-        for (Tank tank : tanks) {
-            if (tank.getPosition().x > MainScreen.WIDTH/2f || tank.getPosition().x < -MainScreen.WIDTH/2f) {
-                toBeRemoved.add(tank.body);
-            }
-        }
-
-        for (Damager damager : bullets) {
-            if (damager.getPosition().x > MainScreen.WIDTH/2f || damager.getPosition().x < -MainScreen.WIDTH/2f) {
-                toBeRemoved.add(damager.body);
+        for (Body body : entities) {
+            if (body.getPosition().x > MainScreen.WIDTH/2f || body.getPosition().x < -MainScreen.WIDTH/2f) {
+                toBeRemoved.add(body);
             }
 
-            else if (damager.getPosition().y > MainScreen.HEIGHT/2f || damager.getPosition().y < -MainScreen.HEIGHT/2f) {
-                toBeRemoved.add(damager.body);
+            else if (body.getPosition().y > MainScreen.HEIGHT/2f || body.getPosition().y < -MainScreen.HEIGHT/2f) {
+                toBeRemoved.add(body);
             }
         }
     }
 
     public void calculateBodyScore(Body body) {
-        StringBuilder scoreText = parent.score.getText();
-
-        int score = 0;
-        try {
-            score = Integer.parseInt(scoreText.substring(7));
-        } catch (NumberFormatException e) {
-            System.out.println(scoreText.substring(7));
-            throw new RuntimeException();
-        }
         if (body.getUserData() instanceof Tank) {
-            score += 4;
+            addKills(4);
         }
-
-        String newLabel = "score: " + score;
-        parent.score.setText(newLabel);
     }
 
     private void tanksShootPlayer() {
+        if (getFreezeStatus())
+            return;
+
+        ArrayList<Tank> tanks = getTanks();
         for (Tank tank : tanks) {
             if (tank.reloadTimer-- > 0)
                 continue;
@@ -189,16 +267,38 @@ public class GameModel {
 
             TankBullet tankBullet = tank.shootBullet(player.getPosition());
             tankBullet.body.setLinearVelocity(tankBullet.velocity);
-            bullets.add(tankBullet);
+            entities.add(tankBullet.body);
         }
     }
 
-    private void removeObjFromData(Object object) {
-        if (object instanceof Tank)
-            tanks.remove((Tank) object);
+    public ArrayList<Damager> getDamagers() {
+        ArrayList<Damager> damagers = new ArrayList<>();
+        for (Body body : entities) {
+            if (body.getUserData() instanceof Damager)
+                damagers.add((Damager) body.getUserData());
+        }
 
-        else if (object instanceof Damager)
-            bullets.remove((Damager) object);
+        return damagers;
+    }
+
+    public ArrayList<ClusterBomb> getClusters() {
+        ArrayList<ClusterBomb> clusters = new ArrayList<>();
+        for (Body body : entities) {
+            if (body.getUserData() instanceof ClusterBomb)
+                clusters.add((ClusterBomb) body.getUserData());
+        }
+
+        return clusters;
+    }
+
+    public ArrayList<Tank> getTanks() {
+        ArrayList<Tank> tanks = new ArrayList<>();
+        for (Body body : entities) {
+            if (body.getUserData() instanceof Tank)
+                tanks.add((Tank) body.getUserData());
+        }
+
+        return tanks;
     }
 
     private static void applyDragForce(Body body) {
@@ -214,12 +314,43 @@ public class GameModel {
         return -fmag;
     }
 
+
+    private void dropAtomic() {
+        if (!player.readyForBombing())
+            return;
+
+        if (numAtomic <= 0)
+            return;
+
+        numAtomic--;
+
+        AtomicBomb atomic = new AtomicBomb(player.body);
+        entities.add(atomic.body);
+
+        player.reload();
+    }
+
+    private void dropCluster() {
+        if (!player.readyForBombing())
+            return;
+
+        if (numCluster <= 0)
+            return;
+
+        numCluster--;
+
+        ClusterBomb cluster = new ClusterBomb(player.body);
+        entities.add(cluster.body);
+
+        player.reload();
+    }
+
     private void dropBomb() {
         if ( !player.readyForBombing() )
             return;
 
         Bomb newBomb = new Bomb(player.body);
-        bullets.add(newBomb);
+        entities.add(newBomb.body);
 
         player.reload();
     }
@@ -264,7 +395,44 @@ public class GameModel {
 
     public void createTank() {
         Tank tank = new Tank(getRandomXPosition(), -MainScreen.HEIGHT / 2f + floorHeight);
-        tanks.add(tank);
+        entities.add(tank.body);
+        tank.move();
+    }
+
+    public float getFrozenProgress() {
+        return frozenProgress;
+    }
+
+    public void setFrozenProgress(float frozenProgress) {
+        this.frozenProgress = frozenProgress;
+    }
+
+    public int getNumKills() {
+        return numKills;
+    }
+
+    public int getNumAtomic() {
+        return numAtomic;
+    }
+
+    public int getNumCluster() {
+        return numCluster;
+    }
+
+    public void setNumAtomic(int numAtomic) {
+        this.numAtomic = numAtomic;
+    }
+
+    public void setNumKills(int numKills) {
+        this.numKills = numKills;
+    }
+
+    public void setNumCluster(int numCluster) {
+        this.numCluster = numCluster;
+    }
+
+    public void addKills(int add) {
+        setNumKills(getNumKills() + add);
     }
 
     private float getRandomXPosition() {
@@ -279,6 +447,7 @@ public class GameModel {
 
     private boolean isRandomSValid(float x) {
         float a, b;
+        ArrayList<Tank> tanks = getTanks();
         for (Tank tank : tanks) {
             a = tank.getPosition().x - Tank.WIDTH/2;
             b = a + Tank.WIDTH;

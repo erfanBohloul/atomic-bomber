@@ -11,7 +11,8 @@ public class GameAssetManager {
 
     public final String playerImage = "images/img.png",
         floorImage = "images/floor.jpg",
-        tankImage = "images/tank.png";
+        tankImage = "images/tank.png",
+        clusterImage = "images/cluster.png";
 
     public final String skin = "skin/glassy-ui.json";
 
@@ -19,6 +20,7 @@ public class GameAssetManager {
         manager.load(playerImage, Texture.class);
         manager.load(floorImage, Texture.class);
         manager.load(tankImage, Texture.class);
+        manager.load(clusterImage, Texture.class);
     }
 
 

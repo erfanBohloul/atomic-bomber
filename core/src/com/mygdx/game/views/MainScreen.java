@@ -5,20 +5,20 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.math.MathUtils;
-import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
-import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.ProgressBar;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.mygdx.game.AtomicBomberMain;
 import com.mygdx.game.controller.KeyboardController;
 import com.mygdx.game.model.GameModel;
-import com.mygdx.game.model.entity.Player;
-import com.mygdx.game.model.entity.Tank;
+import com.mygdx.game.model.entity.enemies.Tank;
+import com.mygdx.game.model.entity.damager.ClusterBomb;
+import com.mygdx.game.views.element.FreezeBar;
+
+import java.util.ArrayList;
 
 public class MainScreen implements Screen {
 
@@ -32,14 +32,23 @@ public class MainScreen implements Screen {
     public static final int WIDTH = 240,
                     HEIGHT = 360;
 
-    private Texture playerTexture,
-        floorTexture,
+    private Texture floorTexture,
+        clusterTexture,
         tankTexture;
 
-    public Label score;
+
+    private Label killCountLabel,
+        remainCluster,
+        remainAtomicBomb,
+        frozenProgress;
+
+    public FreezeBar freezeBar;
+
+    public ProgressBar frozenBar;
+
+    public Table table;
 
     private Skin skin;
-//    private Stage stage;
 
     public MainScreen(AtomicBomberMain parent) {
         this.parent = parent;
@@ -50,34 +59,61 @@ public class MainScreen implements Screen {
         debugRenderer = new Box2DDebugRenderer(true, true, true, true, true, true);
         model = new GameModel(this, controller, parent.assetManager);
 
-        // images
-        parent.assetManager.queueAddImages();
-        parent.assetManager.manager.finishLoading();
-
-        playerTexture = parent.assetManager.manager.get("images/img.png");
-        model.player.setTexture(playerTexture);
-        floorTexture = parent.assetManager.manager.get("images/floor.jpg");
-        tankTexture = parent.assetManager.manager.get("images/tank.png");
-
+        loadTextures();
         // skin
         skin = parent.assetManager.manager.get("skin/glassy-ui.json");
 
+        createTable();
 
-        String text = "score: 0";
+        freezeBar = new FreezeBar();
 
-        score = new Label(text, skin);
-        score.setPosition(-WIDTH/2f + 30 , HEIGHT / 2f - 100);
-        score.setSize(30, 30);
 
         batch = new SpriteBatch();
         batch.setProjectionMatrix(camera.combined);
     }
 
+    private void createTable() {
+
+        table = new Table();
+        table.setSize(20, 70);
+        table.setPosition(-WIDTH / 2f+ 70f, HEIGHT/2f - 100f);
+
+        killCountLabel = new Label("kill: 0", skin);
+        killCountLabel.setFontScale(0.7f);
+
+        remainCluster = new Label("cluster: 0", skin);
+        remainCluster.setFontScale(0.7f);
+
+        remainAtomicBomb = new Label("atomic: 0", skin);
+        remainAtomicBomb.setFontScale(0.7f);
+
+        frozenProgress = new Label("frozen: %0", skin);
+        frozenProgress.setFontScale(0.7f);
+
+
+        table.add(killCountLabel).left();
+        table.row();
+        table.add(remainCluster).left();
+        table.row();
+        table.add(remainAtomicBomb).left();
+        table.row();
+        table.add(frozenProgress).left();
+    }
+
+    private void loadTextures() {
+        parent.assetManager.queueAddImages();
+        parent.assetManager.manager.finishLoading();
+
+        Texture playerTexture = parent.assetManager.manager.get("images/img.png");
+        model.player.setTexture(playerTexture);
+        floorTexture = parent.assetManager.manager.get("images/floor.jpg");
+        tankTexture = parent.assetManager.manager.get("images/tank.png");
+        clusterTexture = parent.assetManager.manager.get("images/cluster.png");
+    }
+
     @Override
     public void show() {
         Gdx.input.setInputProcessor(controller);
-
-
     }
 
     @Override
@@ -92,13 +128,30 @@ public class MainScreen implements Screen {
         model.player.getSprite().draw(batch);
         batch.draw(floorTexture, -WIDTH/2f, model.floor.getPosition().y, Gdx.graphics.getWidth(), GameModel.floorHeight);
 
-        for (Tank tank : model.tanks) {
-            batch.draw(tankTexture, tank.body.getPosition().x-7f, tank.body.getPosition().y-5f, 14, 10);
+        ArrayList<Tank> tanks = model.getTanks();
+        for (Tank tank : tanks) {
+            batch.draw(tankTexture, tank.getPosition().x - Tank.WIDTH/2f, tank.getPosition().y - Tank.HEIGHT/2f, Tank.WIDTH, Tank.HEIGHT);
         }
 
-        score.draw(batch, 1);
+
+
+        ArrayList<ClusterBomb> clusters = model.getClusters();
+        for (ClusterBomb cluster : clusters) {
+            cluster.render(batch, clusterTexture);
+        }
+
+        // table
+        updateTable();
+        table.draw(batch, 1);
 
         batch.end();
+    }
+
+    private void updateTable() {
+        killCountLabel.setText("kill: " + model.getNumKills());
+        remainCluster.setText("cluster: " + model.getNumCluster());
+        remainAtomicBomb.setText("atomic: " + model.getNumAtomic());
+        frozenProgress.setText("frozen: %" + (int) (model.getFrozenProgress() * 100));
     }
 
     @Override

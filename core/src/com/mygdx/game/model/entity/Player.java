@@ -26,7 +26,7 @@ public class Player {
 
         this.body = bodyFactory.makeBoxPolyBody(posx, posy, width, height, BodyDef.BodyType.DynamicBody, true);
         body.setUserData(this);
-        body.setLinearVelocity(new Vector2(10, 0));
+        body.setLinearVelocity(new Vector2(100, 0));
         reloadTimer = 0;
         health = 3;
     }
@@ -36,21 +36,13 @@ public class Player {
     }
 
     public void setTexture(Texture texture) {
-        this.texture = texture;
-    }
-
-    public void makeSprite() {
         sprite = new Sprite(texture);
-
-        sprite.setPosition(getPosition().x - Player.WIDTH/2f, getPosition().y - Player.HEIGHT/2f);
-        sprite.setOrigin(getPosition().x - Player.WIDTH/2f, getPosition().y -Player.HEIGHT/2f);
-//        playerSprite.setRotation(model.player.body.getAngle() * MathUtils.radiansToDegrees);
         sprite.setSize(Player.WIDTH, Player.HEIGHT);
     }
 
     public Sprite getSprite() {
         if (sprite == null) {
-            makeSprite();
+            throw new RuntimeException();
         }
 
         sprite.setPosition(body.getPosition().x - Player.WIDTH/2f, body.getPosition().y - Player.HEIGHT/2f);
@@ -85,5 +77,9 @@ public class Player {
         }
 
         // todo end the game
+    }
+
+    public void accelerate() {
+        body.setLinearVelocity(body.getLinearVelocity().x * 2, body.getLinearVelocity().y * 2);
     }
 }

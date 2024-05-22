@@ -6,26 +6,14 @@ import com.badlogic.gdx.Gdx;
 
 public class KeyboardController implements InputProcessor {
 
-    public boolean down, up, left, right, bomb, T, leftBracket, rightBracket;
+    public boolean accelerate ,bomb, T, leftBracket, rightBracket, cluster, atomic, frozen;
 
     @Override
     public boolean keyDown(int keycode) {
         boolean keyProcessed = false;
         switch (keycode) {
-            case Input.Keys.UP:
-                up = true;
-                keyProcessed = true;
-                break;
-            case Input.Keys.DOWN:
-                down = true;
-                keyProcessed = true;
-                break;
-            case Input.Keys.LEFT:
-                left = true;
-                keyProcessed = true;
-                break;
-            case Input.Keys.RIGHT:
-                right = true;
+            case Input.Keys.D:
+                accelerate = true;
                 keyProcessed = true;
                 break;
             case Input.Keys.F:
@@ -36,16 +24,28 @@ public class KeyboardController implements InputProcessor {
                 T = true;
                 keyProcessed = true;
                 break;
-
             case Input.Keys.LEFT_BRACKET:
                 leftBracket = true;
                 keyProcessed = true;
                 break;
-
             case Input.Keys.RIGHT_BRACKET:
                 rightBracket = true;
                 keyProcessed = true;
                 break;
+            case Input.Keys.C:
+                cluster = true;
+                keyProcessed = true;
+                break;
+            case Input.Keys.R:
+                atomic = true;
+                keyProcessed = true;
+                break;
+
+            case Input.Keys.TAB:
+                frozen = true;
+                keyProcessed = true;
+                break;
+
 
         }
 
@@ -57,20 +57,8 @@ public class KeyboardController implements InputProcessor {
         boolean keyProcessed = false;
         switch (keycode)
         {
-            case Input.Keys.LEFT:
-                left = false;
-                keyProcessed = true;
-                break;
-            case Input.Keys.RIGHT:
-                right = false;
-                keyProcessed = true;
-                break;
-            case Input.Keys.UP:
-                up = false;
-                keyProcessed = true;
-                break;
-            case Input.Keys.DOWN:
-                down = false;
+            case Input.Keys.D:
+                accelerate = false;
                 keyProcessed = true;
                 break;
             case Input.Keys.F:
@@ -89,6 +77,21 @@ public class KeyboardController implements InputProcessor {
 
             case Input.Keys.RIGHT_BRACKET:
                 rightBracket = false;
+                keyProcessed = true;
+                break;
+
+            case Input.Keys.C:
+                cluster = false;
+                keyProcessed = true;
+                break;
+
+            case Input.Keys.R:
+                atomic = false;
+                keyProcessed = true;
+                break;
+
+            case Input.Keys.TAB:
+                frozen = false;
                 keyProcessed = true;
                 break;
         }

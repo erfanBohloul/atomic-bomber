@@ -1,4 +1,4 @@
-package com.mygdx.game.model.entity;
+package com.mygdx.game.model.entity.enemies;
 
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
@@ -9,14 +9,13 @@ import com.mygdx.game.model.entity.damager.TankBullet;
 
 import java.util.Random;
 
-public class Tank {
+public class Tank extends Enemy {
 
-    public Body body;
-    public float health;
     public static final float WIDTH = 14;
     public static final float HEIGHT = 10;
     public static final int RELOAD_TIME = 300;
     public int reloadTimer;
+
 
     // true -> right
     // false -> left
@@ -38,20 +37,12 @@ public class Tank {
         Random rand = new Random();
         directionToMove = rand.nextDouble() < 0.5;
 
-        setVelocity();
+
+        Vector2 velocity = new Vector2(0, 0);
+        velocity.x = (directionToMove ? 5 : -5);
+        lastVelocity = velocity;
     }
 
-    public void setVelocity() {
-        float zarib;
-        if (directionToMove) zarib = 1;
-        else zarib = -1;
-
-        setVelocity(zarib * 5);
-    }
-
-    public void setVelocity(float x) {
-        body.setLinearVelocity(new Vector2(x, 0));
-    }
 
     public void takeDamage(float damage) {
         System.out.println("health: " + health);

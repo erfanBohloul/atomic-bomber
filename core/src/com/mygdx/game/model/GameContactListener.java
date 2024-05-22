@@ -1,17 +1,14 @@
 package com.mygdx.game.model;
 
 import com.badlogic.gdx.physics.box2d.*;
-import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
 import com.mygdx.game.model.entity.Player;
-import com.mygdx.game.model.entity.damager.Bomb;
-import com.mygdx.game.model.entity.Tank;
+import com.mygdx.game.model.entity.damager.AtomicBomb;
+import com.mygdx.game.model.entity.enemies.Tank;
 import com.mygdx.game.model.entity.damager.Damager;
-
-import javax.swing.*;
 
 public class GameContactListener implements ContactListener {
 
-    private GameModel parent;
+    private final GameModel parent;
 
     public GameContactListener(GameModel model) {
         this.parent = model;
@@ -30,11 +27,27 @@ public class GameContactListener implements ContactListener {
 
         System.out.println("Contact: " + bodyA.getUserData().getClass().getSimpleName() + " " + bodyB.getUserData().getClass().getSimpleName());
 
+        if (bodyA.getUserData() instanceof AtomicBomb) {
+            atomicAffector(bodyA, bodyB);
+        }
+
+        else if (bodyB.getUserData() instanceof AtomicBomb) {
+            atomicAffector(bodyB, bodyA);
+        }
+
         floorTank(bodyA, bodyB);
         damagerFloor(bodyA, bodyB);
         damagerTank(bodyA, bodyB);
         damagerPlayer(bodyB, bodyA);
 
+    }
+
+    private void atomicAffector(Body atomic, Body body) {
+        if (body.getUserData() instanceof Player ||
+            body.getUserData() instanceof Damager)
+            return;
+
+        parent.toBeRemoved.addAll(parent.entities);
     }
 
     private void floorTank(Body bodyA, Body bodyB) {
@@ -83,7 +96,7 @@ public class GameContactListener implements ContactListener {
                 parent.toBeRemoved.add(bodyB);
 
                 Tank tank = (Tank) bodyA.getUserData();
-                Bomb bomb = (Bomb) bodyB.getUserData();
+                Damager bomb = (Damager) bodyB.getUserData();
                 tank.takeDamage(bomb.damage);
             }
         }
@@ -94,7 +107,7 @@ public class GameContactListener implements ContactListener {
 
 
                 Tank tank = (Tank) bodyB.getUserData();
-                Bomb bomb = (Bomb) bodyA.getUserData();
+                Damager bomb = (Damager) bodyA.getUserData();
                 tank.takeDamage(bomb.damage);
             }
         }

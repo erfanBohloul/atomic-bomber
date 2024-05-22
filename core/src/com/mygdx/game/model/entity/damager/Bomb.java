@@ -13,23 +13,25 @@ public class Bomb extends Damager {
                         HEIGHT = 2f;
 
     public Bomb(Body playerBody) {
+        this(playerBody.getPosition().x, playerBody.getPosition().y - Player.HEIGHT, playerBody.getLinearVelocity());
+    }
+
+    public Bomb(float posx, float posy, Vector2 velocity) {
+
         BodyFactory bodyFactory = BodyFactory.getInstance();
         if (bodyFactory == null) {
             throw new AssertionError();
         }
 
-        float posx = playerBody.getPosition().x,
-                posy = playerBody.getPosition().y - Player.HEIGHT;
-
         body = bodyFactory.makeBoxPolyBody(posx, posy, WIDTH, HEIGHT, BodyType.DynamicBody, false);
         body.setUserData(this);
-        body.setLinearVelocity(playerBody.getLinearVelocity().x, playerBody.getLinearVelocity().y - 10);
+        body.setLinearVelocity(velocity.x, velocity.y - 10);
 
         damage = 1;
     }
 
-    public float getDamage() {
-        return damage;
+    public Bomb(Vector2 pos, Vector2 velocity) {
+        this(pos.x, pos.y, velocity);
     }
 
     float getArea() {
