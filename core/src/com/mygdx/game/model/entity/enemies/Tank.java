@@ -1,5 +1,7 @@
 package com.mygdx.game.model.entity.enemies;
 
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
@@ -17,10 +19,6 @@ public class Tank extends Enemy {
     public int reloadTimer;
 
 
-    // true -> right
-    // false -> left
-    public final boolean directionToMove;
-
     public Tank(float posx, float posy) {
         BodyFactory bodyFactory = BodyFactory.getInstance();
         if (bodyFactory == null) {
@@ -33,29 +31,9 @@ public class Tank extends Enemy {
         health = 2;
         reloadTimer = RELOAD_TIME;
 
-        // set direction
-        Random rand = new Random();
-        directionToMove = rand.nextDouble() < 0.5;
-
-
         Vector2 velocity = new Vector2(0, 0);
         velocity.x = (directionToMove ? 5 : -5);
         lastVelocity = velocity;
-    }
-
-
-    public void takeDamage(float damage) {
-        System.out.println("health: " + health);
-        health -= damage;
-
-        if (health <= 0) {
-            GameModel.curr.toBeRemoved.add(body);
-            GameModel.curr.calculateBodyScore(body);
-        }
-    }
-
-    public Vector2 getPosition() {
-        return body.getPosition();
     }
 
     public boolean canSee(Body body) {
@@ -70,5 +48,10 @@ public class Tank extends Enemy {
 
     public static float getArea() {
         return WIDTH * HEIGHT;
+    }
+
+    @Override
+    public void render(SpriteBatch batch, Texture texture) {
+        batch.draw(texture, getPosition().x - WIDTH/2f, getPosition().y - HEIGHT/2f, WIDTH, HEIGHT);
     }
 }

@@ -3,6 +3,7 @@ package com.mygdx.game.model;
 import com.badlogic.gdx.physics.box2d.*;
 import com.mygdx.game.model.entity.Player;
 import com.mygdx.game.model.entity.damager.AtomicBomb;
+import com.mygdx.game.model.entity.enemies.Enemy;
 import com.mygdx.game.model.entity.enemies.Tank;
 import com.mygdx.game.model.entity.damager.Damager;
 
@@ -37,9 +38,32 @@ public class GameContactListener implements ContactListener {
 
         floorTank(bodyA, bodyB);
         damagerFloor(bodyA, bodyB);
-        damagerTank(bodyA, bodyB);
+        damagerEnemy(bodyA, bodyB);
         damagerPlayer(bodyB, bodyA);
+        damagerDamager(bodyA, bodyB);
+    }
 
+    private void damagerDamager(Body bodyA, Body bodyB) {
+        if (bodyA.getUserData() instanceof Damager &&
+            bodyA.getType().equals(BodyDef.BodyType.DynamicBody)) {
+
+            if (bodyB.getUserData() instanceof Damager &&
+                bodyB.getType().equals(BodyDef.BodyType.KinematicBody)) {
+                parent.toBeRemoved.add(bodyA);
+                parent.toBeRemoved.add(bodyB);
+            }
+        }
+
+
+        else if (bodyB.getUserData() instanceof Damager &&
+                bodyB.getType().equals(BodyDef.BodyType.DynamicBody)) {
+
+            if (bodyA.getUserData() instanceof Damager &&
+                    bodyA.getType().equals(BodyDef.BodyType.KinematicBody)) {
+                parent.toBeRemoved.add(bodyA);
+                parent.toBeRemoved.add(bodyB);
+            }
+        }
     }
 
     private void atomicAffector(Body atomic, Body body) {
@@ -90,25 +114,25 @@ public class GameContactListener implements ContactListener {
         }
     }
 
-    private void damagerTank (Body bodyA, Body bodyB) {
-        if (bodyA.getUserData() instanceof Tank) {
+    private void damagerEnemy (Body bodyA, Body bodyB) {
+        if (bodyA.getUserData() instanceof Enemy) {
             if (bodyB.getUserData() instanceof Damager) {
                 parent.toBeRemoved.add(bodyB);
 
-                Tank tank = (Tank) bodyA.getUserData();
+                Enemy enemy = (Enemy) bodyA.getUserData();
                 Damager bomb = (Damager) bodyB.getUserData();
-                tank.takeDamage(bomb.damage);
+                enemy.takeDamage(bomb.damage);
             }
         }
 
-        else if (bodyB.getUserData() instanceof Tank) {
+        else if (bodyB.getUserData() instanceof Enemy) {
             if (bodyA.getUserData() instanceof Damager) {
                 parent.toBeRemoved.add(bodyA);
 
 
-                Tank tank = (Tank) bodyB.getUserData();
+                Enemy enemy = (Enemy) bodyB.getUserData();
                 Damager bomb = (Damager) bodyA.getUserData();
-                tank.takeDamage(bomb.damage);
+                enemy.takeDamage(bomb.damage);
             }
         }
     }

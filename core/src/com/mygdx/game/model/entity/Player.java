@@ -2,6 +2,7 @@ package com.mygdx.game.model.entity;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
@@ -26,7 +27,7 @@ public class Player {
 
         this.body = bodyFactory.makeBoxPolyBody(posx, posy, width, height, BodyDef.BodyType.DynamicBody, true);
         body.setUserData(this);
-        body.setLinearVelocity(new Vector2(100, 0));
+        body.setLinearVelocity(new Vector2(2000, 0));
         reloadTimer = 0;
         health = 3;
     }
@@ -40,13 +41,16 @@ public class Player {
         sprite.setSize(Player.WIDTH, Player.HEIGHT);
     }
 
-    public Sprite getSprite() {
+    public void render(SpriteBatch batch) {
         if (sprite == null) {
             throw new RuntimeException();
         }
 
+
         sprite.setPosition(body.getPosition().x - Player.WIDTH/2f, body.getPosition().y - Player.HEIGHT/2f);
-        return sprite;
+//        sprite.setRotation((float) Math.toDegrees(body.getAngle()));
+        sprite.draw(batch);
+
     }
 
     public boolean readyForBombing() {

@@ -1,5 +1,7 @@
 package com.mygdx.game.model.entity.damager;
 
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
@@ -30,5 +32,10 @@ public class AtomicBomb extends Damager {
 
     public float getArea() {
         return WIDTH * HEIGHT;
+    }
+
+    @Override
+    public void render(SpriteBatch batch, Texture texture) {
+        batch.draw(texture, getPosition().x - WIDTH/2f, getPosition().y - HEIGHT/2f, WIDTH, HEIGHT);
     }
 }

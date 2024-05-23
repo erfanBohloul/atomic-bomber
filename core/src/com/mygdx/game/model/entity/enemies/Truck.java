@@ -1,29 +1,33 @@
-package com.mygdx.game.model.entity.damager;
+package com.mygdx.game.model.entity.enemies;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.mygdx.game.model.BodyFactory;
 
-public class TankBullet extends Damager {
+public class Truck extends Enemy{
 
-    public static final float WIDTH = 2;
-    public static final float HEIGHT = 2;
-    public Vector2 velocity;
 
-    public TankBullet(float posx, float posy, Vector2 target) {
+    public static final float WIDTH = 8f,
+            HEIGHT = 7;
+
+    public Truck(float posx, float posy) {
         BodyFactory bodyFactory = BodyFactory.getInstance();
         if (bodyFactory == null) {
-            throw new RuntimeException("BodyFactory is null");
+            throw new AssertionError();
         }
 
-        body = bodyFactory.makeBoxPolyBody(posx, posy, WIDTH, HEIGHT, BodyDef.BodyType.KinematicBody, false);
+        body = bodyFactory.makeBoxPolyBody(posx, posy, WIDTH, HEIGHT, BodyDef.BodyType.KinematicBody, true);
         body.setUserData(this);
 
-        velocity = target.sub(body.getPosition()).scl(10);
+        health = 2;
+
+        Vector2 velocity = Vector2.Zero;
+        velocity.x = (directionToMove ? 7.5f : -7.5f);
+        lastVelocity = velocity;
     }
+
 
     public static float getArea() {
         return WIDTH * HEIGHT;

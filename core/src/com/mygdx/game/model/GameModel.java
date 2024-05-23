@@ -4,7 +4,6 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.TextureData;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
@@ -12,8 +11,7 @@ import com.mygdx.game.controller.KeyboardController;
 import com.mygdx.game.loader.GameAssetManager;
 import com.mygdx.game.model.entity.damager.*;
 import com.mygdx.game.model.entity.Player;
-import com.mygdx.game.model.entity.enemies.Enemy;
-import com.mygdx.game.model.entity.enemies.Tank;
+import com.mygdx.game.model.entity.enemies.*;
 import com.mygdx.game.views.MainScreen;
 
 import java.util.ArrayList;
@@ -34,12 +32,11 @@ public class GameModel {
 
 
     public Player player;
-    private BodyFactory bodyFactory;
     public ArrayList<Body> toBeRemoved = new ArrayList<>();
     public ArrayList<Body> toBeAdded = new ArrayList<>();
     public ArrayList<Body> entities = new ArrayList<>();
     private Music boingMusic;
-    private MainScreen parent;
+    public MainScreen parent;
 
     // game meta data:
     private int numKills,
@@ -51,8 +48,10 @@ public class GameModel {
     private final double freezeTime = 3;
 
     private double timer = 0;
-
     public static GameModel curr;
+
+    public int wave = 0;
+    public int numBombs, numOnTarget;
 
     public GameModel(MainScreen parent, KeyboardController keyboardController, GameAssetManager assetManager) {
         this.parent = parent;
@@ -63,19 +62,14 @@ public class GameModel {
         camera = new OrthographicCamera();
         this.controller = keyboardController;
         this.assetManager = assetManager;
-        bodyFactory = BodyFactory.getInstance(world);
+        BodyFactory bodyFactory = BodyFactory.getInstance(world);
         boingMusic = Gdx.audio.newMusic(Gdx.files.internal("music/boing.mp3"));
 
         createFloor();
         createCeil();
         createPlayer();
-        createTank();
 
         frozenProgress = 0; //default
-    }
-
-    public void toggleFreezeStatus() {
-        freezeStatus = !freezeStatus;
     }
 
     public void setFreezeStatus(boolean freezeStatus) {
@@ -91,8 +85,10 @@ public class GameModel {
     }
 
     public void logicStep(float delta) {
+        handleDamagersOutOfBound();
+        handleEnemiesOutOfBound();
+
         // removing
-        handleObjectsOutOfBound();
         removeObjects();
         // adding
         addObjects();
@@ -112,24 +108,38 @@ public class GameModel {
         tanksShootPlayer();
 
 
-        // applying drag force
-//        applyDragForce(player.body);
-
-
         // player
-        player.body.setLinearVelocity(MathUtils.cos(player.body.getAngle()) * 10, MathUtils.sin(player.body.getAngle()) * 10);
-
-        player.body.applyForceToCenter(new Vector2(0, player.getArea() * 10), true);
-        player.decreaseReloadTimer();
-        if (player.getPosition().x >= MainScreen.WIDTH/2f) {
-            player.body.setTransform(-MainScreen.WIDTH/2f, player.getPosition().y, 0);
-        }
-        else if (player.getPosition().x <= -MainScreen.WIDTH/2f) {
-            player.body.setTransform(MainScreen.WIDTH/2f, player.getPosition().y, 0);
-        }
+        handlePlayer();
 
         // bombs
         world.step(delta, 6, 2);
+    }
+
+    public void loadEnemies() {
+        createTank();
+        createTank();
+        createTank();
+        createTree();
+        createBuilding();
+        createTruck();
+        createTruck();
+    }
+
+    public void startNextWave() {
+        wave++;
+        numBombs = 0;
+        numOnTarget = 0;
+
+        loadEnemies();
+    }
+
+    public float getAccuracy() {
+        if (numBombs <= 0)  return 0;
+        return (float) numOnTarget / (float) numBombs;
+    }
+
+    public boolean waveHasEnded() {
+        return getEnemies().isEmpty();
     }
 
     private void handleInputs() {
@@ -170,7 +180,7 @@ public class GameModel {
         }
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.Z)) {
-            frozenProgress = Math.min(frozenProgress + 0.05f, 1f);
+            frozenProgress = 1f;
         }
 
     }
@@ -235,22 +245,66 @@ public class GameModel {
         toBeRemoved.clear();
     }
 
-    private void handleObjectsOutOfBound() {
-        for (Body body : entities) {
-            if (body.getPosition().x > MainScreen.WIDTH/2f || body.getPosition().x < -MainScreen.WIDTH/2f) {
-                toBeRemoved.add(body);
+    private void handlePlayer() {
+        player.body.setLinearVelocity(MathUtils.cos(player.body.getAngle()) * 25, MathUtils.sin(player.body.getAngle()) * 25);
+
+        player.body.applyForceToCenter(new Vector2(0, player.getArea() * 10), true);
+        player.decreaseReloadTimer();
+        handlePlayerOutOfBound();
+    }
+
+    private void handlePlayerOutOfBound() {
+        if (player.getPosition().x >= MainScreen.WIDTH/2f) {
+            player.body.setTransform(-MainScreen.WIDTH/2f, player.getPosition().y, player.body.getAngle());
+        }
+        else if (player.getPosition().x <= -MainScreen.WIDTH/2f) {
+            player.body.setTransform(MainScreen.WIDTH/2f, player.getPosition().y, player.body.getAngle());
+        }
+    }
+
+    private void handleDamagersOutOfBound() {
+        ArrayList<Damager> damagers = getDamagers();
+        for (Damager damager : damagers) {
+            if (damager.getPosition().x > MainScreen.WIDTH/2f || damager.getPosition().x < -MainScreen.WIDTH/2f) {
+                toBeRemoved.add(damager.body);
             }
 
-            else if (body.getPosition().y > MainScreen.HEIGHT/2f || body.getPosition().y < -MainScreen.HEIGHT/2f) {
-                toBeRemoved.add(body);
+            else if (damager.getPosition().y > MainScreen.HEIGHT/2f || damager.getPosition().y < -MainScreen.HEIGHT/2f) {
+                toBeRemoved.add(damager.body);
+            }
+        }
+    }
+
+    private void handleEnemiesOutOfBound() {
+        ArrayList<Enemy> enemies = getEnemies();
+        for (Enemy enemy : enemies) {
+            if (enemy.getPosition().x >= MainScreen.WIDTH/2f) {
+                enemy.body.setTransform(-MainScreen.WIDTH/2f, enemy.getPosition().y, 0);
+            }
+            else if (enemy.getPosition().x <= -MainScreen.WIDTH/2f) {
+                enemy.body.setTransform(MainScreen.WIDTH/2f, enemy.getPosition().y, 0);
             }
         }
     }
 
     public void calculateBodyScore(Body body) {
+        float n = 0;
         if (body.getUserData() instanceof Tank) {
-            addKills(4);
+            n = 4;
         }
+        else if (body.getUserData() instanceof Truck) {
+            n = 2;
+        }
+        else if (body.getUserData() instanceof Building) {
+            n = 15;
+        }
+
+        addKills( (int) n);
+        addFrozenProgress(n / 20f);
+    }
+
+    private void addFrozenProgress(float n) {
+        setFrozenProgress(Math.min(1, getFrozenProgress() + n));
     }
 
     private void tanksShootPlayer() {
@@ -314,12 +368,11 @@ public class GameModel {
         return -fmag;
     }
 
-
     private void dropAtomic() {
         if (!player.readyForBombing())
             return;
 
-        if (numAtomic <= 0)
+        if (getNumAtomic() <= 0)
             return;
 
         numAtomic--;
@@ -399,6 +452,23 @@ public class GameModel {
         tank.move();
     }
 
+    public void createTree() {
+        Tree tree = new Tree(getRandomXPosition(), -MainScreen.HEIGHT / 2f + floorHeight);
+        entities.add(tree.body);
+    }
+
+    public void createBuilding() {
+        Building building = new Building(getRandomXPosition(), -MainScreen.HEIGHT / 2f + floorHeight);
+        entities.add(building.body);
+    }
+
+    public void createTruck() {
+        Truck truck = new Truck(getRandomXPosition(), -MainScreen.HEIGHT / 2f + floorHeight);
+        entities.add(truck.body);
+
+        truck.move();
+    }
+
     public float getFrozenProgress() {
         return frozenProgress;
     }
@@ -433,6 +503,14 @@ public class GameModel {
 
     public void addKills(int add) {
         setNumKills(getNumKills() + add);
+    }
+
+    public void addCluster() {
+        setNumCluster(getNumCluster() + 1);
+    }
+
+    public void addAtomic() {
+        setNumAtomic(getNumAtomic() + 1);
     }
 
     private float getRandomXPosition() {

@@ -6,7 +6,7 @@ import com.badlogic.gdx.Gdx;
 
 public class KeyboardController implements InputProcessor {
 
-    public boolean accelerate ,bomb, T, leftBracket, rightBracket, cluster, atomic, frozen;
+    public boolean accelerate ,bomb, T, leftBracket, rightBracket, cluster, atomic, frozen, escape = false;
 
     @Override
     public boolean keyDown(int keycode) {
@@ -43,6 +43,11 @@ public class KeyboardController implements InputProcessor {
 
             case Input.Keys.TAB:
                 frozen = true;
+                keyProcessed = true;
+                break;
+
+            case Input.Keys.ESCAPE:
+                escape = !escape;
                 keyProcessed = true;
                 break;
 
