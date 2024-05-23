@@ -12,6 +12,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.mygdx.game.AtomicBomberMain;
+import com.mygdx.game.controller.AccountController;
 import com.mygdx.game.model.account.User;
 import com.mygdx.game.views.element.Notification;
 
@@ -131,33 +132,11 @@ public class LoginScreen implements Screen {
     }
 
     private void login(String username, String password) throws Exception {
-        if (username.isEmpty() || password.isEmpty()) {
-            throw new Exception("Username or password is empty");
-        }
-
-        User user = User.getUserByName(username);
-
-        if (user == null) {
-            throw new Exception("User not found");
-        }
-
-        if (!user.getPassword().equals(password)) {
-            throw new Exception("Wrong password");
-        }
-
-        User.setLoginUser(user);
+        AccountController.login(username, password);
     }
 
     private void register(String username, String password) throws Exception {
-        if (username.isEmpty() || password.isEmpty()) {
-            throw new Exception("Username or password is empty");
-        }
-        User user = User.getUserByName(username);
-        if (user != null) {
-            throw new Exception("Username already taken");
-        }
-
-        new User(username, password);
+        AccountController.register(username, password);
     }
 
     @Override

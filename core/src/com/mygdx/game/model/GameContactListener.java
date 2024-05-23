@@ -1,11 +1,15 @@
 package com.mygdx.game.model;
 
 import com.badlogic.gdx.physics.box2d.*;
-import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
+import com.mygdx.game.model.entity.Player;
+import com.mygdx.game.model.entity.damager.AtomicBomb;
+import com.mygdx.game.model.entity.enemies.Enemy;
+import com.mygdx.game.model.entity.enemies.Tank;
+import com.mygdx.game.model.entity.damager.Damager;
 
 public class GameContactListener implements ContactListener {
 
-    private GameModel parent;
+    private final GameModel parent;
 
     public GameContactListener(GameModel model) {
         this.parent = model;
@@ -22,16 +26,126 @@ public class GameContactListener implements ContactListener {
             return;
         }
 
-        System.out.println("Contact: " + bodyA.getUserData() + " " + bodyB.getUserData());
+        System.out.println("Contact: " + bodyA.getUserData().getClass().getSimpleName() + " " + bodyB.getUserData().getClass().getSimpleName());
 
-        if (fixtureA.getBody().getType() == BodyType.StaticBody) {
-            if (bodyB.getUserData().equals("BOMB")) {
+        if (bodyA.getUserData() instanceof AtomicBomb) {
+            atomicAffector(bodyA, bodyB);
+        }
+
+        else if (bodyB.getUserData() instanceof AtomicBomb) {
+            atomicAffector(bodyB, bodyA);
+        }
+
+        floorTank(bodyA, bodyB);
+        damagerFloor(bodyA, bodyB);
+        damagerEnemy(bodyA, bodyB);
+        damagerPlayer(bodyB, bodyA);
+        damagerDamager(bodyA, bodyB);
+    }
+
+    private void damagerDamager(Body bodyA, Body bodyB) {
+        if (bodyA.getUserData() instanceof Damager &&
+            bodyA.getType().equals(BodyDef.BodyType.DynamicBody)) {
+
+            if (bodyB.getUserData() instanceof Damager &&
+                bodyB.getType().equals(BodyDef.BodyType.KinematicBody)) {
+                parent.toBeRemoved.add(bodyA);
                 parent.toBeRemoved.add(bodyB);
             }
         }
 
-        if (fixtureB.getBody().getType() == BodyType.StaticBody) {
-            if (bodyA.getUserData().equals("BOMB")) {
+
+        else if (bodyB.getUserData() instanceof Damager &&
+                bodyB.getType().equals(BodyDef.BodyType.DynamicBody)) {
+
+            if (bodyA.getUserData() instanceof Damager &&
+                    bodyA.getType().equals(BodyDef.BodyType.KinematicBody)) {
+                parent.toBeRemoved.add(bodyA);
+                parent.toBeRemoved.add(bodyB);
+            }
+        }
+    }
+
+    private void atomicAffector(Body atomic, Body body) {
+        if (body.getUserData() instanceof Player ||
+            body.getUserData() instanceof Damager)
+            return;
+
+        parent.toBeRemoved.addAll(parent.entities);
+    }
+
+    private void floorTank(Body bodyA, Body bodyB) {
+        if (bodyA.getUserData() instanceof Tank) {
+            if (bodyB.getUserData().equals("Floor")) {
+                Tank tank = (Tank) bodyA.getUserData();
+                tank.body.applyForceToCenter(0, Tank.getArea() * 10, true);
+            }
+        }
+
+
+        if (bodyB.getUserData() instanceof Tank) {
+            if (bodyA.getUserData().equals("Floor")) {
+                Tank tank = (Tank) bodyB.getUserData();
+                tank.body.applyForceToCenter(0, Tank.getArea() * 10, true);
+            }
+        }
+    }
+
+    private void damagerPlayer(Body bodyA, Body bodyB) {
+        if (bodyA.getUserData() instanceof Player) {
+            if (bodyB.getUserData() instanceof Damager) {
+                parent.toBeRemoved.add(bodyB);
+
+                Player player = (Player) bodyA.getUserData();
+                Damager damager = (Damager) bodyB.getUserData();
+                player.takeDamage(damager.damage);
+            }
+        }
+
+        else if (bodyB.getUserData() instanceof Player) {
+            if (bodyA.getUserData() instanceof Damager) {
+                parent.toBeRemoved.add(bodyA);
+
+
+                Player player = (Player) bodyB.getUserData();
+                Damager damager = (Damager) bodyA.getUserData();
+                player.takeDamage(damager.damage);
+            }
+        }
+    }
+
+    private void damagerEnemy (Body bodyA, Body bodyB) {
+        if (bodyA.getUserData() instanceof Enemy) {
+            if (bodyB.getUserData() instanceof Damager) {
+                parent.toBeRemoved.add(bodyB);
+
+                Enemy enemy = (Enemy) bodyA.getUserData();
+                Damager bomb = (Damager) bodyB.getUserData();
+                enemy.takeDamage(bomb.damage);
+            }
+        }
+
+        else if (bodyB.getUserData() instanceof Enemy) {
+            if (bodyA.getUserData() instanceof Damager) {
+                parent.toBeRemoved.add(bodyA);
+
+
+                Enemy enemy = (Enemy) bodyB.getUserData();
+                Damager bomb = (Damager) bodyA.getUserData();
+                enemy.takeDamage(bomb.damage);
+            }
+        }
+    }
+
+    private void damagerFloor(Body bodyA, Body bodyB) {
+        if (bodyA.getUserData().equals("FLOOR")) {
+            if (bodyB.getUserData() instanceof Damager) {
+                parent.toBeRemoved.add(bodyB);
+            }
+        }
+
+        if (bodyB.getUserData().equals("FLOOR")) {
+            if (bodyA.getUserData() instanceof Damager) {
                 parent.toBeRemoved.add(bodyA);
             }
         }
@@ -51,4 +165,5 @@ public class GameContactListener implements ContactListener {
     public void postSolve(Contact contact, ContactImpulse impulse) {
 
     }
+
 }

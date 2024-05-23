@@ -3,11 +3,11 @@ package com.mygdx.game.views;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.mygdx.game.AtomicBomberMain;
@@ -19,9 +19,12 @@ public class MenuScreen implements Screen {
 
     private Skin skin;
 
+    private SpriteBatch batch;
+    private Texture avatarTexture;
     public MenuScreen(AtomicBomberMain parent) {
         this.parent = parent;
         stage = new Stage(new ScreenViewport());
+        batch = new SpriteBatch();
 
         // todo maybe need to eleminate this two line
         parent.assetManager.queueAddSkin();
@@ -43,8 +46,14 @@ public class MenuScreen implements Screen {
         TextButton quitButton = new TextButton("Quit", skin);
         TextButton preferenceButton = new TextButton("Preferences", skin);
 
+        // images
+        Image avatar = new Image(new Texture(Gdx.files.internal("images/img.png")));
+
+
+        table.add(avatar).width(50).height(50);
+        table.row().pad(30, 0, 0, 0);
         table.add(newGameButton).fillX().uniformX();
-        table.row().pad(10, 0, 10, 0);
+        table.row();
         table.add(preferenceButton).fillX().uniformX();
         table.row();
         table.add(quitButton).fillX().uniformX();
@@ -66,6 +75,9 @@ public class MenuScreen implements Screen {
         });
 
         // todo add preferenceButton listener
+
+        // textures
+        avatarTexture = new Texture(Gdx.files.internal("images/img.png"));
     }
 
     @Override
@@ -77,6 +89,10 @@ public class MenuScreen implements Screen {
         // tell our stage to do actions and draw itself
         stage.act(Math.min(Gdx.graphics.getDeltaTime(), 1 / 30f));
         stage.draw();
+
+//        batch.begin();
+//        batch.draw(avatarTexture, avatarContainer.getX(), avatarContainer.getY());
+//        batch.end();
     }
 
     @Override
