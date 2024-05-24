@@ -10,8 +10,9 @@ import com.mygdx.game.model.BodyFactory;
 import com.mygdx.game.model.GameModel;
 import com.mygdx.game.model.entity.Player;
 
-public class ClusterBomb extends Damager {
+import java.util.ArrayList;
 
+public class ClusterBomb extends Damager {
 
     public static float WIDTH = 2.5f,
             HEIGHT = 2.5f;
@@ -33,8 +34,7 @@ public class ClusterBomb extends Damager {
         body.setUserData(this);
         body.setLinearVelocity(playerBody.getLinearVelocity().x, playerBody.getLinearVelocity().y - 10);
 
-        firstPos = body.getPosition();
-        System.out.println("firstPos: " + firstPos);
+        firstPos = new Vector2(posx, posy);
 
         sprite = new Sprite();
         sprite.setPosition(body.getPosition().x, body.getPosition().y);
@@ -43,23 +43,19 @@ public class ClusterBomb extends Damager {
         damage = 3;
     }
 
-
     public void render(SpriteBatch batch, Texture texture) {
         if (canExplode()) {
             GameModel.curr.toBeRemoved.add(body);
 
+            ArrayList<Body> bombs = new ArrayList<>();
             // draw 5 regular bomb in 5 direction
-            Body b1 = new Bomb(body.getPosition(), new Vector2(16, 0)).body;
-            Body b2 = new Bomb(body.getPosition(), new Vector2(4, -4)).body;
-            Body b3 = new Bomb(body.getPosition(), new Vector2(0, -16)).body;
-            Body b4 = new Bomb(body.getPosition(), new Vector2(-4, -4)).body;
-            Body b5 = new Bomb(body.getPosition(), new Vector2(-16, 0)).body;
+            bombs.add(new Bomb(body.getPosition(), new Vector2(16, 0)).body);
+            bombs.add(new Bomb(body.getPosition(), new Vector2(4, -4)).body);
+            bombs.add(new Bomb(body.getPosition(), new Vector2(0, -16)).body);
+            bombs.add(new Bomb(body.getPosition(), new Vector2(-4, -4)).body);
+            bombs.add(new Bomb(body.getPosition(), new Vector2(-16, 0)).body);
 
-            GameModel.curr.toBeAdded.add(b1);
-            GameModel.curr.toBeAdded.add(b2);
-            GameModel.curr.toBeAdded.add(b3);
-            GameModel.curr.toBeAdded.add(b4);
-            GameModel.curr.toBeAdded.add(b5);
+            GameModel.curr.toBeAdded.addAll(bombs);
         }
 
         else {
@@ -69,8 +65,7 @@ public class ClusterBomb extends Damager {
 
     public boolean canExplode() {
         Vector2 dist = body.getPosition().sub(firstPos);
-        System.out.println("pos: " + body.getPosition() + "\tdist: " + dist);
-        return dist.x * dist.x + dist.y * dist.y > 50;
+        return dist.x * dist.x + dist.y * dist.y > 100;
     }
 
 }

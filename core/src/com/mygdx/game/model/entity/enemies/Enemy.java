@@ -18,8 +18,7 @@ public abstract class Enemy {
     public boolean directionToMove;
 
     public Enemy() {
-        Random rand = new Random();
-        directionToMove = rand.nextDouble() < 0.5;
+        directionToMove = GameModel.curr.random.nextDouble() < 0.5;
     }
 
     public void setVelocity(Vector2 velocity) {
@@ -33,8 +32,6 @@ public abstract class Enemy {
 
     public void move() {
         setVelocity(lastVelocity);
-
-        System.out.println("tank first velocity: " + lastVelocity);
     }
 
     public Vector2 getPosition() {

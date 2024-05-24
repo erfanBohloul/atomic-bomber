@@ -75,15 +75,9 @@ public class Player {
 
     public void takeDamage(float damage) {
         health -= damage;
-
-        if (health <= 0) {
-            GameModel.curr.toBeRemoved.add(body);
-        }
-
-        // todo end the game
     }
 
-    public void accelerate() {
-        body.setLinearVelocity(body.getLinearVelocity().x * 2, body.getLinearVelocity().y * 2);
+    public boolean isDead() {
+        return health <= 0;
     }
 }

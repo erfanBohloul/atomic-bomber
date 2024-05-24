@@ -3,6 +3,8 @@ package com.mygdx.game.model;
 import com.badlogic.gdx.physics.box2d.*;
 import com.mygdx.game.model.entity.Player;
 import com.mygdx.game.model.entity.damager.AtomicBomb;
+import com.mygdx.game.model.entity.damager.Bomb;
+import com.mygdx.game.model.entity.damager.ClusterBomb;
 import com.mygdx.game.model.entity.enemies.Enemy;
 import com.mygdx.game.model.entity.enemies.Tank;
 import com.mygdx.game.model.entity.damager.Damager;
@@ -94,11 +96,11 @@ public class GameContactListener implements ContactListener {
     private void damagerPlayer(Body bodyA, Body bodyB) {
         if (bodyA.getUserData() instanceof Player) {
             if (bodyB.getUserData() instanceof Damager) {
-                parent.toBeRemoved.add(bodyB);
-
                 Player player = (Player) bodyA.getUserData();
                 Damager damager = (Damager) bodyB.getUserData();
                 player.takeDamage(damager.damage);
+
+                parent.toBeRemoved.add(bodyB);
             }
         }
 
@@ -117,6 +119,12 @@ public class GameContactListener implements ContactListener {
     private void damagerEnemy (Body bodyA, Body bodyB) {
         if (bodyA.getUserData() instanceof Enemy) {
             if (bodyB.getUserData() instanceof Damager) {
+
+
+                if (bodyB.getUserData() instanceof Bomb || bodyB.getUserData() instanceof ClusterBomb) {
+                    parent.numOnTarget++;
+                }
+
                 parent.toBeRemoved.add(bodyB);
 
                 Enemy enemy = (Enemy) bodyA.getUserData();
@@ -127,6 +135,10 @@ public class GameContactListener implements ContactListener {
 
         else if (bodyB.getUserData() instanceof Enemy) {
             if (bodyA.getUserData() instanceof Damager) {
+                if (bodyA.getUserData() instanceof Bomb || bodyA.getUserData() instanceof ClusterBomb) {
+                    parent.numOnTarget++;
+                }
+
                 parent.toBeRemoved.add(bodyA);
 
 
@@ -140,6 +152,7 @@ public class GameContactListener implements ContactListener {
     private void damagerFloor(Body bodyA, Body bodyB) {
         if (bodyA.getUserData().equals("FLOOR")) {
             if (bodyB.getUserData() instanceof Damager) {
+
                 parent.toBeRemoved.add(bodyB);
             }
         }

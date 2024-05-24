@@ -6,15 +6,14 @@ import java.util.ArrayList;
 
 public class AccountController {
 
-    private static ArrayList<User> users = new ArrayList<>();
     public static User loginUser = null;
 
-    public static void login(String username, String password) throws Exception {
+    public static User login(String username, String password) throws Exception {
         if (username.isEmpty() || password.isEmpty()) {
             throw new Exception("Username or password is empty");
         }
 
-        User user = getUserByName(username);
+        User user = getUser(username, password);
 
         if (user == null) {
             throw new Exception("User not found");
@@ -24,13 +23,13 @@ public class AccountController {
             throw new Exception("Wrong password");
         }
 
-
+        return user;
     }
 
-    public static User getUserByName(String username) {
-        for (User user : users) {
-            if (user.getUsername().equals(username))
-                return user;
+    public static User getUser(String username, String password) {
+        if (Database.userExist(username, password)) {
+            User user = new User(username, password, false);
+            return user;
         }
 
         return null;
@@ -41,13 +40,18 @@ public class AccountController {
             throw new Exception("Username or password is empty");
         }
 
-        User user = getUserByName(username);
+        User user = getUser(username, password);
         if (user != null) {
             throw new Exception("Username already taken");
         }
 
-        User newUser = new User(username, password);
+        User newUser = new User(username, password, false);
         addUser(newUser);
+    }
+
+    public static User guest() {
+        User guestUser = new User("guest", "1234", true);
+        return guestUser;
     }
 
     public static void setLoginUser(User newUser) {
@@ -59,6 +63,6 @@ public class AccountController {
     }
 
     public static void addUser(User user) {
-        users.add(user);
+        Database.addUser(user.getUsername(), user.getPassword());
     }
 }

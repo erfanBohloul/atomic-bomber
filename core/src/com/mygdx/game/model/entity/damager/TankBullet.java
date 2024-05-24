@@ -23,6 +23,7 @@ public class TankBullet extends Damager {
         body.setUserData(this);
 
         velocity = target.sub(body.getPosition()).scl(10);
+        damage = 1;
     }
 
     public static float getArea() {

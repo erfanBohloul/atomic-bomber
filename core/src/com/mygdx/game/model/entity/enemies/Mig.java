@@ -6,41 +6,37 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.mygdx.game.model.BodyFactory;
-import com.mygdx.game.model.GameModel;
 import com.mygdx.game.model.entity.damager.TankBullet;
 
-import java.util.Random;
+public class Mig extends Enemy{
 
-public class Tank extends Enemy {
-
-    public static final float WIDTH = 14;
-    public static final float HEIGHT = 10;
-    public static final int RELOAD_TIME = 300;
+    public static final float WIDTH = 10, HEIGHT = 10;
+    public static final int RELOAD_TIME = 60;
     public int reloadTimer;
 
-
-    public Tank(float posx, float posy) {
+    public Mig(float posx, float posy) {
         BodyFactory bodyFactory = BodyFactory.getInstance();
 
         body = bodyFactory.makeBoxPolyBody(posx, posy, WIDTH, HEIGHT, BodyDef.BodyType.KinematicBody, true);
         body.setUserData(this);
 
-        health = 2;
-        reloadTimer = RELOAD_TIME;
+        health = 5;
 
-        Vector2 velocity = new Vector2(0, 0);
-        velocity.x = (directionToMove ? 5 : -5);
-        lastVelocity = velocity;
+        lastVelocity = new Vector2(10, 0);
+    }
+
+    public TankBullet shootBullet(Vector2 direction) {
+        reloadTimer = RELOAD_TIME;
+        float tmp;
+        if (direction.y > getPosition().y)  tmp = getPosition().y + HEIGHT/2f;
+        else    tmp = getPosition().y - HEIGHT/2f;
+
+        return new TankBullet(getPosition().x, getPosition().y + tmp, direction);
     }
 
     public boolean canSee(Body body) {
         Vector2 distance = body.getPosition().sub(getPosition());
         return distance.x * distance.x + distance.y * distance.y < 10000;
-    }
-
-    public TankBullet shootBullet(Vector2 direction) {
-        reloadTimer = RELOAD_TIME;
-        return new TankBullet(getPosition().x, getPosition().y + Tank.HEIGHT, direction);
     }
 
     public static float getArea() {

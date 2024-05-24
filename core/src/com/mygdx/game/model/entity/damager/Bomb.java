@@ -19,11 +19,7 @@ public class Bomb extends Damager {
     }
 
     public Bomb(float posx, float posy, Vector2 velocity) {
-
         BodyFactory bodyFactory = BodyFactory.getInstance();
-        if (bodyFactory == null) {
-            throw new AssertionError();
-        }
 
         body = bodyFactory.makeBoxPolyBody(posx, posy, WIDTH, HEIGHT, BodyType.DynamicBody, false);
         body.setUserData(this);
@@ -34,10 +30,6 @@ public class Bomb extends Damager {
 
     public Bomb(Vector2 pos, Vector2 velocity) {
         this(pos.x, pos.y, velocity);
-    }
-
-    float getArea() {
-        return WIDTH * HEIGHT;
     }
 
     @Override

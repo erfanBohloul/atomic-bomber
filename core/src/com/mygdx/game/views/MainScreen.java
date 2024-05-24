@@ -7,18 +7,18 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
+import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
-import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.mygdx.game.AtomicBomberMain;
 import com.mygdx.game.controller.KeyboardController;
 import com.mygdx.game.model.GameModel;
+import com.mygdx.game.model.account.User;
 import com.mygdx.game.model.entity.Bonus;
 import com.mygdx.game.model.entity.damager.*;
 import com.mygdx.game.model.entity.enemies.*;
 import com.mygdx.game.model.entity.enemies.Tree;
-import com.mygdx.game.views.element.FreezeBar;
 
 import java.util.ArrayList;
 
@@ -30,6 +30,7 @@ public class MainScreen implements Screen {
     private OrthographicCamera camera;
     private Box2DDebugRenderer debugRenderer;
     private SpriteBatch batch;
+    private User user;
 
     public static final int WIDTH = 240,
                     HEIGHT = 360;
@@ -44,7 +45,9 @@ public class MainScreen implements Screen {
         truckTexture,
         freezeBarTexture,
         bonusClusterTexture,
-        bonusAtomicTexture;
+        bonusAtomicTexture,
+        bunkerTexture,
+        migTexture;
 
 
     private Label killCountLabel,
@@ -57,57 +60,52 @@ public class MainScreen implements Screen {
     public Table table,
         accuracyTable,
         pauseTable;
+    public Stage pauseStage,
+        endGameStage;
 
     public TextButton exitButton, saveButton, settingButton;
-
     private Skin skin;
 
-    public MainScreen(AtomicBomberMain parent) {
+    public MainScreen(AtomicBomberMain parent, User user) {
         this.parent = parent;
-
-
-        controller = new KeyboardController();
-        camera = new OrthographicCamera(WIDTH, HEIGHT);
-        debugRenderer = new Box2DDebugRenderer(true, true, true, true, true, true);
-        model = new GameModel(this, controller, parent.assetManager);
-        model.startNextWave();
-
-        loadTextures();
-        // skin
-        skin = parent.assetManager.manager.get("skin/glassy-ui.json");
-
-        createTable();
-        createAccuracyTable();
-        createPauseTable();
-
-        batch = new SpriteBatch();
-        batch.setProjectionMatrix(camera.combined);
+        this.user = user;
     }
 
     private void createPauseTable() {
-        pauseTable = new Table();
-        pauseTable.setSize(50, 25);
-        pauseTable.setPosition(-50, -25);
+        pauseStage = new Stage();
+        pauseTable = new Table(skin);
+        pauseStage.addActor(pauseTable);
+        pauseTable.setFillParent(true);
+        pauseTable.setSize(15, 15);
+        pauseTable.setPosition(0, 0);
+        pauseTable.setPosition(-15, -12.5f);
 
 
         exitButton = new TextButton("exit?", skin);
-        exitButton.setScale(0.5f, 0.5f);
-        exitButton.setSize(5, 5);
-
+        exitButton.setPosition(0, 0);
         saveButton = new TextButton("Save", skin);
-        saveButton.setScale(0.5f, 0.5f);
-        saveButton.setSize(5, 5);
-
+        saveButton.setPosition(0, -10);
         settingButton = new TextButton("setting", skin);
-        settingButton.setScale(0.5f, 0.5f);
-        settingButton.setSize(5, 5);
+        settingButton.setPosition(0, -20);
 
+        pauseTable.add(exitButton).center();
         pauseTable.row();
-        pauseTable.add(exitButton);
+        pauseTable.add(saveButton).center();
         pauseTable.row();
-        pauseTable.add(saveButton);
-        pauseTable.row();
-        pauseTable.add(settingButton);
+        pauseTable.add(settingButton).center();
+    }
+
+    private void createEndGameStage() {
+        Table endTable = new Table(skin);
+        endTable.setFillParent(true);
+        endGameStage.addActor(endTable);
+
+        Label gameOverLabel = new Label("Game Over!", skin);
+        TextButton returnButton = new TextButton("Return", skin);
+
+        endTable.add(gameOverLabel);
+        endTable.row().pad(10, 0, 10, 0);
+        endTable.add(returnButton);
     }
 
     private void createAccuracyTable() {
@@ -152,6 +150,8 @@ public class MainScreen implements Screen {
         table.add(remainAtomicBomb).left();
         table.row();
         table.add(frozenProgress).left();
+        table.row();
+        table.add(waveLabel).left();
     }
 
     private void loadTextures() {
@@ -171,11 +171,32 @@ public class MainScreen implements Screen {
         freezeBarTexture = parent.assetManager.manager.get("images/freezeBar.png");
         bonusAtomicTexture = parent.assetManager.manager.get("images/bonusnuke.png");
         bonusClusterTexture = parent.assetManager.manager.get("images/bonuscluster.png");
+        bunkerTexture = parent.assetManager.manager.get("images/bunker.png");
+        migTexture = parent.assetManager.manager.get("images/mig.png");
     }
 
     @Override
     public void show() {
+        controller = new KeyboardController();
+        camera = new OrthographicCamera(WIDTH, HEIGHT);
+        debugRenderer = new Box2DDebugRenderer(true, true, true, true, true, true);
+        model = new GameModel(this, controller, parent.assetManager);
+
+        // skin
+        skin = parent.assetManager.manager.get("skin/glassy-ui.json");
+
+        endGameStage = new Stage(new ScreenViewport());
+
+        batch = new SpriteBatch();
+        batch.setProjectionMatrix(camera.combined);
+
         Gdx.input.setInputProcessor(controller);
+        createEndGameStage();
+        createAccuracyTable();
+        createTable();
+        createPauseTable();
+
+        loadTextures();
     }
 
     @Override
@@ -183,20 +204,51 @@ public class MainScreen implements Screen {
 
         if (controller.escape) {
             batch.begin();
-            pauseTable.draw(batch, 1);
+            pauseStage.draw();
             batch.end();
+
+            if (Gdx.input.isKeyJustPressed(Input.Keys.Q)) {
+                controller.escape = false;
+                quitUser();
+            }
+
+            else if (Gdx.input.isKeyJustPressed(Input.Keys.S)) {
+                parent.changScreen(AtomicBomberMain.PREFERENCES, user, AtomicBomberMain.APPLICATION);
+            }
             return;
         }
 
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-//        if (model.waveHasEnded()) {
-//            batch.begin();
-//            loadScreenBetweenWaves(batch);
-//            batch.end();
-//            return;
-//        }
+        if (model.hasGameEnded()) {
+            endGameStage.act(Math.min(Gdx.graphics.getDeltaTime(), 1 / 30f));
+            endGameStage.draw();
+
+            if (Gdx.input.isKeyJustPressed(Input.Keys.P)) {
+                model.player.health = 3;
+            }
+
+            else if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+                if (user.isGuest()) {
+                    parent.changScreen(AtomicBomberMain.LOGIN, null, AtomicBomberMain.APPLICATION);
+                    return;
+                }
+
+                else {
+                    parent.changScreen(AtomicBomberMain.MENU, user, AtomicBomberMain.PREFERENCES);
+                    return;
+                }
+            }
+            return;
+        }
+
+        if (controller.S) {
+            batch.begin();
+            loadScreenBetweenWaves(batch);
+            batch.end();
+            return;
+        }
 
 
         model.logicStep(delta);
@@ -209,9 +261,7 @@ public class MainScreen implements Screen {
             batch.draw(freezeBarTexture, -WIDTH/2f, -HEIGHT/2f, WIDTH, HEIGHT);
         }
 
-
         model.player.render(batch);
-
 
         ArrayList<Enemy> enemies = model.getEnemies();
         for (Enemy enemy : enemies) {
@@ -226,6 +276,12 @@ public class MainScreen implements Screen {
 
             else if (enemy instanceof Building)
                 enemy.render(batch, buildingTexture);
+
+            else if (enemy instanceof Bunker)
+                enemy.render(batch, bunkerTexture);
+
+            else if (enemy instanceof Mig)
+                enemy.render(batch, migTexture);
         }
 
         ArrayList<Damager> damagers = model.getDamagers();
@@ -254,22 +310,31 @@ public class MainScreen implements Screen {
         batch.end();
     }
 
-    private void loadScreenBetweenWaves(SpriteBatch batch) {
-        renderAccuracyTable(batch);
+    private void quitUser() {
+        if (user.isGuest()) {
+            parent.changeResetScreen(AtomicBomberMain.LOGIN, null);
+        }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ANY_KEY)) {
-            parent.changScreen(AtomicBomberMain.LOGIN);
-            return;
+        else {
+            parent.changeResetScreen(AtomicBomberMain.MENU, null);
         }
     }
 
+    private void loadScreenBetweenWaves(SpriteBatch batch) {
+        renderAccuracyTable(batch);
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+            controller.S = false;
+            model.startNextWave();
+        }
+    }
 
     private void renderAccuracyTable(SpriteBatch batch) {
         waveLabel.setText("Wave " + model.wave + ".");
 
         float accuracy = model.getAccuracy() * 100;
         accuracyLabel.setText("Accuracy: %" + accuracy + ".");
-        accuracyTable.draw(batch, 2);
+        accuracyTable.draw(batch, 1);
     }
 
     private void updateTable() {
@@ -277,6 +342,7 @@ public class MainScreen implements Screen {
         remainCluster.setText("cluster: " + model.getNumCluster());
         remainAtomicBomb.setText("atomic: " + model.getNumAtomic());
         frozenProgress.setText("frozen: %" + (int) (model.getFrozenProgress() * 100));
+        waveLabel.setText("wave " + model.wave + ".");
     }
 
     @Override
@@ -301,5 +367,20 @@ public class MainScreen implements Screen {
 
     @Override
     public void dispose() {
+        batch.dispose();
+        pauseStage.dispose();
+        endGameStage.dispose();
+        batch.dispose();
+        floorTexture.dispose();
+        clusterTexture.dispose();
+        tankTexture.dispose();
+        treeTexture.dispose();
+        truckTexture.dispose();
+        buildingTexture.dispose();
+        planeTexture.dispose();
+        freezeBarTexture.dispose();
+        nukeTexture.dispose();
+        bunkerTexture.dispose();
+        this.dispose();
     }
 }

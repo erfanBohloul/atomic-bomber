@@ -13,18 +13,19 @@ import com.mygdx.game.model.entity.damager.*;
 import com.mygdx.game.model.entity.Player;
 import com.mygdx.game.model.entity.enemies.*;
 import com.mygdx.game.views.MainScreen;
+import jdk.tools.jmod.Main;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Random;
 
 public class GameModel {
 
     public World world;
-    private Box2DDebugRenderer debugRenderer;
-    private OrthographicCamera camera;
     private KeyboardController controller;
     public GameAssetManager assetManager;
     private static final double DEGREES_TO_RADIANS = (double)(Math.PI/180);
+    public Random random;
 
     public Body floor,
             ceil;
@@ -37,6 +38,7 @@ public class GameModel {
     public ArrayList<Body> entities = new ArrayList<>();
     private Music boingMusic;
     public MainScreen parent;
+    private final float migTime;
 
     // game meta data:
     private int numKills,
@@ -50,7 +52,7 @@ public class GameModel {
     private double timer = 0;
     public static GameModel curr;
 
-    public int wave = 0;
+    public int wave = 1;
     public int numBombs, numOnTarget;
 
     public GameModel(MainScreen parent, KeyboardController keyboardController, GameAssetManager assetManager) {
@@ -58,18 +60,24 @@ public class GameModel {
         curr = this;
         world = new World(new Vector2(0, -10), true);
         world.setContactListener(new GameContactListener(this));
-        debugRenderer = new Box2DDebugRenderer();
-        camera = new OrthographicCamera();
+        BodyFactory.getInstance(world);
         this.controller = keyboardController;
         this.assetManager = assetManager;
-        BodyFactory bodyFactory = BodyFactory.getInstance(world);
         boingMusic = Gdx.audio.newMusic(Gdx.files.internal("music/boing.mp3"));
+        random = new Random(42);
 
         createFloor();
         createCeil();
         createPlayer();
+        loadEnemies();
 
+
+        migTime = 20;
         frozenProgress = 0; //default
+    }
+
+    public boolean hasGameEnded() {
+        return player.isDead() || wave >= 4;
     }
 
     public void setFreezeStatus(boolean freezeStatus) {
@@ -85,17 +93,17 @@ public class GameModel {
     }
 
     public void logicStep(float delta) {
-        handleDamagersOutOfBound();
-        handleEnemiesOutOfBound();
-
+        timer += delta;
         // removing
         removeObjects();
         // adding
         addObjects();
 
+        handleDamagersOutOfBound();
+        handleEnemiesOutOfBound();
+
         // handle frozen state
         if (freezeStatus) {
-            timer += delta;
 
             if (timer >= freezeTime) {
                 timer = 0;
@@ -103,15 +111,24 @@ public class GameModel {
             }
         }
 
-        handleInputs();
-        // shoot to player
-        tanksShootPlayer();
+        if (wave >= 3) {
+            if (timer >= migTime) {
+                timer -= migTime;
+                createMig();
+            }
 
+            migsShootPlayer();
+        }
+
+        handleInputs();
 
         // player
         handlePlayer();
 
-        // bombs
+        // shoot to player
+        tanksShootPlayer();
+
+
         world.step(delta, 6, 2);
     }
 
@@ -123,6 +140,7 @@ public class GameModel {
         createBuilding();
         createTruck();
         createTruck();
+        createBunker();
     }
 
     public void startNextWave() {
@@ -130,16 +148,13 @@ public class GameModel {
         numBombs = 0;
         numOnTarget = 0;
 
-        loadEnemies();
+        if (wave >= 0)
+            timer = 0;
     }
 
     public float getAccuracy() {
         if (numBombs <= 0)  return 0;
         return (float) numOnTarget / (float) numBombs;
-    }
-
-    public boolean waveHasEnded() {
-        return getEnemies().isEmpty();
     }
 
     private void handleInputs() {
@@ -162,10 +177,6 @@ public class GameModel {
         }
         else if (controller.rightBracket) {
             player.body.setTransform(player.getPosition(), player.body.getAngle() + (float) DEGREES_TO_RADIANS * (-2f));
-        }
-
-        if (controller.accelerate) {
-            player.accelerate();
         }
 
         // cheat codes
@@ -215,6 +226,8 @@ public class GameModel {
         for (Enemy enemy : enemies) {
             enemy.stop();
         }
+
+        timer = 0;
     }
 
     public ArrayList<Enemy> getEnemies() {
@@ -241,7 +254,9 @@ public class GameModel {
         for (Body body: toBeRemoved) {
             entities.remove(body);
             world.destroyBody(body);
+            body = null;
         }
+
         toBeRemoved.clear();
     }
 
@@ -278,10 +293,23 @@ public class GameModel {
     private void handleEnemiesOutOfBound() {
         ArrayList<Enemy> enemies = getEnemies();
         for (Enemy enemy : enemies) {
+
             if (enemy.getPosition().x >= MainScreen.WIDTH/2f) {
+
+                if (enemy instanceof Mig) {
+                    toBeRemoved.add(enemy.body);
+                    continue;
+                }
+
                 enemy.body.setTransform(-MainScreen.WIDTH/2f, enemy.getPosition().y, 0);
             }
             else if (enemy.getPosition().x <= -MainScreen.WIDTH/2f) {
+
+                if (enemy instanceof Mig) {
+                    toBeRemoved.add(enemy.body);
+                    continue;
+                }
+
                 enemy.body.setTransform(MainScreen.WIDTH/2f, enemy.getPosition().y, 0);
             }
         }
@@ -307,13 +335,49 @@ public class GameModel {
         setFrozenProgress(Math.min(1, getFrozenProgress() + n));
     }
 
+    private ArrayList<Mig> getMigs() {
+        ArrayList<Mig>  migs = new ArrayList<>();
+        for (Body body : entities) {
+            if (body.getUserData() instanceof Mig)
+                migs.add((Mig) body.getUserData());
+        }
+
+        return  migs;
+    }
+
+    private void migsShootPlayer() {
+        if (getFreezeStatus())
+            return;
+
+        if (wave < 3)
+            return;
+
+        ArrayList<Mig> migs = getMigs();
+        for (Mig mig : migs) {
+            mig.decreaseReloadTimer();
+            if (mig.reloadTimer > 0)
+                continue;
+
+            if (!mig.canSee(player.body))
+                continue;
+
+            TankBullet bullet = mig.shootBullet(player.getPosition());
+            bullet.body.setLinearVelocity(bullet.velocity);
+            toBeAdded.add(bullet.body);
+        }
+    }
+
     private void tanksShootPlayer() {
         if (getFreezeStatus())
             return;
 
+        if (wave <= 1)
+            return;
+
         ArrayList<Tank> tanks = getTanks();
         for (Tank tank : tanks) {
-            if (tank.reloadTimer-- > 0)
+            tank.decreaseReloadTimer();
+            if (tank.reloadTimer > 0)
                 continue;
 
             if (!tank.canSee(player.body))
@@ -321,7 +385,7 @@ public class GameModel {
 
             TankBullet tankBullet = tank.shootBullet(player.getPosition());
             tankBullet.body.setLinearVelocity(tankBullet.velocity);
-            entities.add(tankBullet.body);
+            toBeAdded.add(tankBullet.body);
         }
     }
 
@@ -381,6 +445,9 @@ public class GameModel {
         entities.add(atomic.body);
 
         player.reload();
+
+        numBombs++;
+        numOnTarget++;
     }
 
     private void dropCluster() {
@@ -396,6 +463,7 @@ public class GameModel {
         entities.add(cluster.body);
 
         player.reload();
+        numBombs++;
     }
 
     private void dropBomb() {
@@ -406,6 +474,7 @@ public class GameModel {
         entities.add(newBomb.body);
 
         player.reload();
+        numBombs++;
     }
 
     public void createFloor() {
@@ -447,26 +516,37 @@ public class GameModel {
     }
 
     public void createTank() {
-        Tank tank = new Tank(getRandomXPosition(), -MainScreen.HEIGHT / 2f + floorHeight);
-        entities.add(tank.body);
+        Tank tank = new Tank(random.nextInt(MainScreen.WIDTH - 50) + 25, -MainScreen.HEIGHT / 2f + floorHeight);
+        toBeAdded.add(tank.body);
         tank.move();
     }
 
     public void createTree() {
-        Tree tree = new Tree(getRandomXPosition(), -MainScreen.HEIGHT / 2f + floorHeight);
-        entities.add(tree.body);
+        Tree tree = new Tree(40, -MainScreen.HEIGHT / 2f + floorHeight);
+        toBeAdded.add(tree.body);
     }
 
     public void createBuilding() {
-        Building building = new Building(getRandomXPosition(), -MainScreen.HEIGHT / 2f + floorHeight);
-        entities.add(building.body);
+        Building building = new Building(0, -MainScreen.HEIGHT / 2f + floorHeight);
+        toBeAdded.add(building.body);
     }
 
     public void createTruck() {
-        Truck truck = new Truck(getRandomXPosition(), -MainScreen.HEIGHT / 2f + floorHeight);
-        entities.add(truck.body);
+        Truck truck = new Truck(random.nextInt(MainScreen.WIDTH - 30) + 15, -MainScreen.HEIGHT / 2f + floorHeight);
+        toBeAdded.add(truck.body);
 
         truck.move();
+    }
+
+    public void createBunker() {
+        Bunker bunker = new Bunker(random.nextInt(MainScreen.WIDTH - 34) + 17, -MainScreen.HEIGHT / 2f + floorHeight);
+        toBeAdded.add(bunker.body);
+    }
+
+    public void createMig() {
+        Mig mig = new Mig(-MainScreen.WIDTH/2f + Mig.WIDTH, random.nextInt(MainScreen.HEIGHT / 2)  -MainScreen.HEIGHT / 4f);
+        toBeAdded.add(mig.body);
+        mig.move();
     }
 
     public float getFrozenProgress() {
@@ -511,28 +591,5 @@ public class GameModel {
 
     public void addAtomic() {
         setNumAtomic(getNumAtomic() + 1);
-    }
-
-    private float getRandomXPosition() {
-        Random rand = new Random();
-        float rand_x;
-        do {
-            rand_x = rand.nextInt(1000) * (MainScreen.WIDTH / 1000f) - MainScreen.WIDTH / 2f;
-        } while (!isRandomSValid(rand_x));
-
-        return rand_x;
-    }
-
-    private boolean isRandomSValid(float x) {
-        float a, b;
-        ArrayList<Tank> tanks = getTanks();
-        for (Tank tank : tanks) {
-            a = tank.getPosition().x - Tank.WIDTH/2;
-            b = a + Tank.WIDTH;
-            if (a <= x && x <= b)
-                return false;
-        }
-
-        return true;
     }
 }

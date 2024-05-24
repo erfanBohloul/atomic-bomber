@@ -80,10 +80,10 @@ public class LoginScreen implements Screen {
 
 
                 try {
-                    login(username, password);
+                    User logeedUser = login(username, password);
 
                     System.out.println("[SUCC] Login Successful");
-                    parent.changScreen(AtomicBomberMain.MENU);
+                    parent.changScreen(AtomicBomberMain.MENU, logeedUser, AtomicBomberMain.LOGIN);
                 } catch (Exception e) {
                     System.out.println("[ERROR] " + e.getMessage());
                     Notification notification = new Notification(e.getMessage(), Notification.NotificationType.FAIL);
@@ -125,14 +125,15 @@ public class LoginScreen implements Screen {
         guestButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                parent.changScreen(AtomicBomberMain.APPLICATION);
+                User guest = AccountController.guest();
+                parent.changeResetScreen(AtomicBomberMain.APPLICATION, guest);
                 System.out.println("[SUCC] Entering as Guest");
             }
         });
     }
 
-    private void login(String username, String password) throws Exception {
-        AccountController.login(username, password);
+    private User login(String username, String password) throws Exception {
+        return AccountController.login(username, password);
     }
 
     private void register(String username, String password) throws Exception {
